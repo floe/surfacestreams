@@ -92,9 +92,9 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
-				     "format", G_TYPE_STRING, "RGB16",
-				     "width", G_TYPE_INT, 384,
-				     "height", G_TYPE_INT, 288,
+				     "format", G_TYPE_STRING, "RGBA",
+				     "width", G_TYPE_INT, 1920,
+				     "height", G_TYPE_INT, 1080,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
 				     NULL), NULL);
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, conv, videosink, NULL);
@@ -228,7 +228,9 @@ void handle_frame() {
   int key = cv::waitKey(1);
   protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
 
-  listener.release(frames);
+  //listener.release(frames);
+  delete depth;
+  delete ir;
   //libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100));
 }
 
