@@ -22,6 +22,7 @@ IF(ENABLE_CXX11)
     MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   ENDIF()
 ENDIF(ENABLE_CXX11)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include")
 
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
@@ -108,6 +109,7 @@ SET(LIBRARIES
   ${LibUSB_LIBRARIES}
   ${TurboJPEG_LIBRARIES}
   ${LIBFREENECT2_THREADING_LIBRARIES}
+  gstreamer-1.0 gobject-2.0 glib-2.0 gstapp-1.0
 )
 
 SET(RESOURCES
