@@ -22,7 +22,7 @@ IF(ENABLE_CXX11)
     MESSAGE(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
   ENDIF()
 ENDIF(ENABLE_CXX11)
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -I/usr/include/gstreamer-1.0 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -mavx")
 
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
@@ -51,6 +51,9 @@ INCLUDE_DIRECTORIES(
   ${OpenCV_INCLUDE_DIRS}
   ${LibUSB_INCLUDE_DIRS}
   ${TurboJPEG_INCLUDE_DIRS}
+  "/usr/include/gstreamer-1.0"
+  "/usr/include/glib-2.0"
+  "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
 )
 
 LINK_DIRECTORIES(${LibUSB_LIBRARY_DIRS})
