@@ -43,40 +43,31 @@
 
 #include <stdint.h>
 
-int want = 1;
 GstElement *gpipeline, *appsrc, *conv, *videosink;
 
-static void prepare_buffer(GstAppSrc* appsrc, uint8_t* data) {
+void buffer_destroy(gpointer data) {
+  libfreenect2::Frame* done = (libfreenect2::Frame*)data;
+  delete done;
+}
+
+GstFlowReturn prepare_buffer(GstAppSrc* appsrc, libfreenect2::Frame* frame) {
 
   static GstClockTime timestamp = 0;
   GstBuffer *buffer;
   guint size;
-  GstFlowReturn ret;
-
-  if (!want) return;
-  want = 0;
 
   size = 1920 * 1080 * 4;
 
-  buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)data, size, 0, size, NULL, NULL );
+  buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
 
   GST_BUFFER_PTS (buffer) = timestamp;
   GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 30);
 
   timestamp += GST_BUFFER_DURATION (buffer);
 
-  ret = gst_app_src_push_buffer(appsrc, buffer);
-
-  if (ret != GST_FLOW_OK) {
-    /* something wrong, stop pushing */
-    // g_main_loop_quit (loop);
-  }
+  return gst_app_src_push_buffer(appsrc, buffer);
 }
 
-static void cb_need_data (GstElement *appsrc, guint unused_size, gpointer user_data) {
-  //prepare_buffer((GstAppSrc*)appsrc);
-  want = 1;
-}
 
 void gstreamer_init(gint argc, gchar *argv[]) {
 
@@ -92,7 +83,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
-				     "format", G_TYPE_STRING, "RGBA",
+				     "format", G_TYPE_STRING, "BGRA",
 				     "width", G_TYPE_INT, 1920,
 				     "height", G_TYPE_INT, 1080,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
@@ -104,9 +95,8 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   g_object_set (G_OBJECT (appsrc),
 		"stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
 		"format", GST_FORMAT_TIME,
-    "is-live", TRUE,
+    "is-live", FALSE,
     NULL);
-  g_signal_connect (appsrc, "need-data", G_CALLBACK (cb_need_data), NULL);
 
   /* play */
   gst_element_set_state (gpipeline, GST_STATE_PLAYING);
@@ -213,20 +203,10 @@ void handle_frame() {
   libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
   libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
 
-  cv::imshow("rgb", cv::Mat(rgb->height, rgb->width, CV_8UC4, rgb->data));
-  cv::imshow("ir", cv::Mat(ir->height, ir->width, CV_32FC1, ir->data) / 20000.0f);
-  cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
-
   registration->apply(rgb,depth,&undistorted,&registered);
 
-  cv::imshow("undistorted", cv::Mat(undistorted.height, undistorted.width, CV_32FC1, undistorted.data) / 4500.0f);
-  cv::imshow("registered", cv::Mat(registered.height, registered.width, CV_8UC4, registered.data));
-
-  prepare_buffer((GstAppSrc*)appsrc,rgb->data);
+  prepare_buffer((GstAppSrc*)appsrc,rgb);
   g_main_context_iteration(g_main_context_default(),FALSE);
-
-  int key = cv::waitKey(1);
-  protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape
 
   //listener.release(frames);
   delete depth;
