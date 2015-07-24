@@ -69,8 +69,9 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   /* setup pipeline */
   gpipeline = gst_pipeline_new ("pipeline");
   appsrc = gst_element_factory_make ("appsrc", "source");
-  conv = gst_element_factory_make ("videoconvert", "conv");
-  videosink = gst_element_factory_make ("xvimagesink", "videosink");
+
+  const char* pipe_desc = argv[2] ? argv[2] : "videoconvert ! autovideosink";
+  videosink = gst_parse_bin_from_description(pipe_desc,TRUE,NULL);
 
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
@@ -80,8 +81,8 @@ void gstreamer_init(gint argc, gchar *argv[]) {
 				     "height", G_TYPE_INT, 1080,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
 				     NULL), NULL);
-  gst_bin_add_many (GST_BIN (gpipeline), appsrc, conv, videosink, NULL);
-  gst_element_link_many (appsrc, conv, videosink, NULL);
+  gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
+  gst_element_link_many (appsrc, videosink, NULL);
 
   /* setup appsrc */
   g_object_set (G_OBJECT (appsrc),
