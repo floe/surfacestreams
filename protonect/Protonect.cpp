@@ -54,18 +54,8 @@ void buffer_destroy(gpointer data) {
 
 GstFlowReturn prepare_buffer(GstAppSrc* appsrc, libfreenect2::Frame* frame) {
 
-  static GstClockTime timestamp = 0;
-  GstBuffer *buffer;
-  guint size;
-
-  size = 1920 * 1080 * 4;
-
-  buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
-
-  GST_BUFFER_PTS (buffer) = timestamp;
-  GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 30);
-
-  timestamp += GST_BUFFER_DURATION (buffer);
+  guint size = 1920 * 1080 * 4;
+  GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
 
   return gst_app_src_push_buffer(appsrc, buffer);
 }
@@ -97,7 +87,10 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   g_object_set (G_OBJECT (appsrc),
 		"stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
 		"format", GST_FORMAT_TIME,
-    "is-live", FALSE,
+    "is-live", TRUE,
+    "min-latency", 0,
+    "max-latency", gst_util_uint64_scale_int (1, GST_SECOND, 30),
+    "do-timestamp", TRUE,
     NULL);
 
   /* play */
