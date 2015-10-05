@@ -24,16 +24,17 @@
  * either License.
  */
 
+/** @file Protonect.cpp Main application file. */
 
 #include <iostream>
 #include <signal.h>
 
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener_impl.h>
-#include <libfreenect2/threading.h>
 #include <libfreenect2/registration.h>
 #include <libfreenect2/packet_pipeline.h>
-#ifdef LIBFREENECT2_WITH_OPENGL_SUPPORT
+#include <libfreenect2/logger.h>
+#ifdef EXAMPLES_WITH_OPENGL_SUPPORT
 #include "viewer.h"
 #endif
 
@@ -103,7 +104,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
 
 // Protonect stuff
 
-bool protonect_shutdown = false;
+bool protonect_shutdown = false; ///< Whether the running application should shut down.
 
 libfreenect2::Freenect2 freenect2;
 libfreenect2::Freenect2Device *dev = 0;
@@ -119,8 +120,47 @@ void sigint_handler(int s)
   protonect_shutdown = true;
 }
 
+//The following demostrates how to create a custom logger
+#include <fstream>
+#include <cstdlib>
+class MyFileLogger: public libfreenect2::Logger
+{
+private:
+  std::ofstream logfile_;
+public:
+  MyFileLogger(const char *filename)
+  {
+    if (filename)
+      logfile_.open(filename);
+    level_ = Debug;
+  }
+  bool good()
+  {
+    return logfile_.is_open() && logfile_.good();
+  }
+  virtual void log(Level level, const std::string &message)
+  {
+    logfile_ << "[" << libfreenect2::Logger::level2str(level) << "] " << message << std::endl;
+  }
+};
+
+/**
+ * Main application entry point.
+ *
+ * Accepted argumemnts:
+ * - cpu Perform depth processing with the CPU.
+ * - gl  Perform depth processing with OpenGL.
+ * - cl  Perform depth processing with OpenCL.
+ * - <number> Serial number of the device to open.
+ * - -noviewer Disable viewer window.
+ */
 int setup(int argc, char* argv[])
 {
+  // create a console logger with debug level (default is console logger with info level)
+  libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+  MyFileLogger *filelogger = new MyFileLogger(getenv("LOGFILE"));
+  if (filelogger->good())
+    libfreenect2::setGlobalLogger(filelogger);
 
   if(freenect2.enumerateDevices() == 0)
   {
@@ -129,6 +169,8 @@ int setup(int argc, char* argv[])
   }
 
   std::string serial = freenect2.getDefaultDeviceSerialNumber();
+
+  bool viewer_enabled = true;
 
   for(int argI = 1; argI < argc; ++argI)
   {
@@ -160,6 +202,10 @@ int setup(int argc, char* argv[])
     else if(arg.find_first_not_of("0123456789") == std::string::npos) //check if parameter could be a serial number
     {
       serial = arg;
+    }
+    else if(arg == "-noviewer")
+    {
+      viewer_enabled = false;
     }
     else
     {
@@ -235,16 +281,6 @@ void handle_frame() {
 
 int main(int argc, char *argv[])
 {
-  std::string program_path(argv[0]);
-  size_t executable_name_idx = program_path.rfind("Protonect");
-
-  std::string binpath = "/";
-
-  if(executable_name_idx != std::string::npos)
-  {
-    binpath = program_path.substr(0, executable_name_idx);
-  }
-
   setup(argc,argv);
   gstreamer_init(argc,argv);
 
