@@ -156,8 +156,26 @@ public:
  */
 int setup(int argc, char* argv[])
 {
+  std::string program_path(argv[0]);
+  std::cerr << "Environment variables: LOGFILE=<protonect.log>" << std::endl;
+  std::cerr << "Usage: " << program_path << " [gl | cl | cpu] [<device serial>] [-noviewer]" << std::endl;
+  size_t executable_name_idx = program_path.rfind("Protonect");
+
+  std::string binpath = "/";
+
+  if(executable_name_idx != std::string::npos)
+  {
+    binpath = program_path.substr(0, executable_name_idx);
+  }
+
+  libfreenect2::Freenect2 freenect2;
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
+  // avoid flooing the very slow Windows console with debug messages
+  libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Info));
+#else
   // create a console logger with debug level (default is console logger with info level)
   libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Debug));
+#endif
   MyFileLogger *filelogger = new MyFileLogger(getenv("LOGFILE"));
   if (filelogger->good())
     libfreenect2::setGlobalLogger(filelogger);
