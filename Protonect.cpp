@@ -168,7 +168,6 @@ int setup(int argc, char* argv[])
     binpath = program_path.substr(0, executable_name_idx);
   }
 
-  libfreenect2::Freenect2 freenect2;
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
   // avoid flooing the very slow Windows console with debug messages
   libfreenect2::setGlobalLogger(libfreenect2::createConsoleLogger(libfreenect2::Logger::Info));
@@ -293,6 +292,7 @@ void handle_frame() {
   prepare_buffer((GstAppSrc*)appsrc,rgb);
   g_main_context_iteration(g_main_context_default(),FALSE);
 
+  // don't let the listener free the frames, it will steal the rgb frame from the appsrc otherwise
   delete depth;
   delete ir;
 }
