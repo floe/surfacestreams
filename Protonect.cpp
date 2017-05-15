@@ -426,10 +426,6 @@ int main(int argc, char *argv[])
     prepare_buffer((GstAppSrc*)appsrc,rgb);
     g_main_context_iteration(g_main_context_default(),FALSE);
 
-    // don't let the listener free the frames, it will steal the rgb frame from the appsrc otherwise
-    delete depth;
-    delete ir;
-
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
     if (enable_rgb)
     {
@@ -449,7 +445,12 @@ int main(int argc, char *argv[])
 #endif
 
 /// [loop end]
-    listener.release(frames);
+//
+    // don't let the listener free the frames, it will steal the rgb frame from the appsrc otherwise
+    delete depth;
+    delete ir;
+
+    //listener.release(frames);
     /** libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100)); */
   }
 /// [loop end]
