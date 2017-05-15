@@ -109,15 +109,6 @@ void gstreamer_init(gint argc, gchar *argv[]) {
 
 bool protonect_shutdown = false; ///< Whether the running application should shut down.
 
-libfreenect2::Freenect2 freenect2;
-libfreenect2::Freenect2Device *dev = 0;
-libfreenect2::PacketPipeline *pipeline = 0;
-
-libfreenect2::SyncMultiFrameListener listener(libfreenect2::Frame::Color | libfreenect2::Frame::Ir | libfreenect2::Frame::Depth);
-libfreenect2::FrameMap frames;
-libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4), bigdepth(1920,1080+2,4);
-libfreenect2::Registration* registration = 0;
-
 void sigint_handler(int s)
 {
   protonect_shutdown = true;
@@ -181,7 +172,7 @@ public:
  * - <number> Serial number of the device to open.
  * - -noviewer Disable viewer window.
  */
-int setup(int argc, char* argv[])
+int main(int argc, char *argv[])
 /// [main]
 {
   std::string program_path(argv[0]);
@@ -371,6 +362,8 @@ int setup(int argc, char* argv[])
   dev->setIrAndDepthFrameListener(&listener);
 /// [listeners]
 
+  gstreamer_init(argc,argv);
+
 /// [start]
   if (enable_rgb && enable_depth)
   {
@@ -386,37 +379,6 @@ int setup(int argc, char* argv[])
   std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
   std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 /// [start]
-
-/*void handle_frame() {
-  listener.waitForNewFrame(frames);
-  libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
-  libfreenect2::Frame *ir = frames[libfreenect2::Frame::Ir];
-  libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
-
-  // clip depth to max. 1m
-  float* depth_s = ((float*)depth->data);
-  float limit = 1000.0;
-  __m256 ymm0, ymm1, ymm2, ymm3 = _mm256_broadcast_ss(&limit);
-  for (int i = 0; i < (512*424)/8; i++, depth_s+=8) {
-    ymm0 = _mm256_load_ps(depth_s);
-    ymm1 = _mm256_cmp_ps(ymm0,ymm3,_CMP_LE_OS);
-    ymm2 = _mm256_and_ps(ymm0,ymm1);
-    _mm256_store_ps(depth_s,ymm2);
-    //if (*depth_s > 1000.0) *depth_s = 0;
-  }
-
-  registration->apply(rgb,depth,&undistorted,&registered,true,&bigdepth);
-
-  float* depth_p = ((float*)bigdepth.data)+1920;
-  unsigned int* rgb_src = (unsigned int*)rgb->data;
-  __m256 ymm4, ymm5 = _mm256_broadcast_ss(&limit);
-  for (int i = 0; i < (1920*1080)/8; i++, depth_p+=8, rgb_src+=8) {
-    ymm0 = _mm256_load_ps(depth_p);
-    ymm1 = _mm256_cmp_ps(ymm0,ymm5,_CMP_LE_OS);
-    ymm4 = (__m256)_mm256_load_si256((__m256i*)rgb_src);
-    ymm2 = _mm256_and_ps(ymm4,ymm1);
-    _mm256_store_si256((__m256i*)rgb_src,(__m256i)ymm2);
-  }*/
 
 /// [registration setup]
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
@@ -452,13 +414,22 @@ int setup(int argc, char* argv[])
 /// [registration]
     }
 
-  prepare_buffer((GstAppSrc*)appsrc,rgb);
-  g_main_context_iteration(g_main_context_default(),FALSE);
+    framecount++;
+    if (!viewer_enabled)
+    {
+      if (framecount % 100 == 0)
+        std::cout << "The viewer is turned off. Received " << framecount << " frames. Ctrl-C to stop." << std::endl;
+      listener.release(frames);
+      continue;
+    }
 
-  // don't let the listener free the frames, it will steal the rgb frame from the appsrc otherwise
-  delete depth;
-  delete ir;
-}
+    prepare_buffer((GstAppSrc*)appsrc,rgb);
+    g_main_context_iteration(g_main_context_default(),FALSE);
+
+    // don't let the listener free the frames, it will steal the rgb frame from the appsrc otherwise
+    delete depth;
+    delete ir;
+
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
     if (enable_rgb)
     {
@@ -474,14 +445,9 @@ int setup(int argc, char* argv[])
       viewer.addFrame("registered", &registered);
     }
 
-int main(int argc, char *argv[])
-{
-  setup(argc,argv);
-  gstreamer_init(argc,argv);
+    protonect_shutdown = protonect_shutdown || viewer.render();
+#endif
 
-  while(!protonect_shutdown)
-  {
-    handle_frame();
 /// [loop end]
     listener.release(frames);
     /** libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100)); */
