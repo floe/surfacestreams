@@ -46,12 +46,11 @@
 // OpenCV stuff
 //
 
-/*#include <Eigen/Core>
+#include <Eigen/Core>
 #include <SimpleRansac.h>
 #include <PlaneModel.h>
 
 PlaneModel<float> plane;
-*/
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -522,16 +521,44 @@ int main(int argc, char *argv[])
 /// [registration]
     }
 
-    framecount++;
-    if (!viewer_enabled)
-    {
-      if (framecount % 100 == 0)
-        std::cout << "The viewer is turned off. Received " << framecount << " frames. Ctrl-C to stop." << std::endl;
-      listener.release(frames);
-      continue;
+/// [gstreamer]
+
+    // use RANSAC to compute a plane out of sparse point cloud
+    std::vector<Eigen::Vector3f> points;
+    int dw = 512, dh = 424;
+    if (find_plane) {
+      for (int y = 0; y < dh; y++) {
+        for (int x = 0; x < dw; x++) {
+          float px,py,pz;
+          registration->getPointXYZ(&undistorted,y,x,px,py,pz);
+          if (std::isnan(pz) || std::isinf(pz) || pz <= 0) continue;
+          Eigen::Vector3f point = { px, py, pz };
+          points.push_back( point );
+        }
+      }
+
+      std::cout << "3D point count: " << points.size() << std::endl;
+      plane = ransac<PlaneModel<float>>( points, distance*0.01, 200 );
+      std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
+      find_plane = false;
     }
 
-/// [gstreamer]
+    // calloc is never slower, and often _much_ faster, than malloc+memset
+    //uint32_t* new_frame = (uint32_t*)calloc( sizeof(uint32_t), 1920*1080 );
+
+    for (int y = 0; y < dh; y++) {
+      for (int x = 0; x < dw; x++) {
+
+        float px,py,pz;
+        registration->getPointXYZ(&undistorted,y,x,px,py,pz);
+        if (std::isnan(pz) || std::isinf(pz) || pz <= 0) continue;
+        Eigen::Vector3f point = { px, py, pz };
+
+        if (filter) if (fabs(plane.n.dot(point) - plane.d) < distance*0.01)
+          ((uint32_t*)registered.data)[y*dw+x] = 0;
+      }
+    }
+
     libfreenect2::Frame *newrgb = new libfreenect2::Frame(1280, 720, 4);
 
     Mat input(1080,1920,CV_8UC4,rgb->data);
@@ -540,7 +567,17 @@ int main(int argc, char *argv[])
 
     prepare_buffer((GstAppSrc*)appsrc,newrgb);
     g_main_context_iteration(g_main_context_default(),FALSE);
+
 /// [gstreamer]
+
+    framecount++;
+    if (!viewer_enabled)
+    {
+      if (framecount % 100 == 0)
+        std::cout << "The viewer is turned off. Received " << framecount << " frames. Ctrl-C to stop." << std::endl;
+      listener.release(frames);
+      continue;
+    }
 
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
     if (enable_rgb)
