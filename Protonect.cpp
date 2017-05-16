@@ -48,6 +48,7 @@
 #include <gst/app/gstappsrc.h>
 
 #include <stdint.h>
+#include <string.h>
 
 #include <immintrin.h>
 
@@ -76,7 +77,8 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   gpipeline = gst_pipeline_new ("pipeline");
   appsrc = gst_element_factory_make ("appsrc", "source");
 
-  const char* pipe_desc = argv[2] ? argv[2] : "videoconvert ! autovideosink";
+  // create pipeline from string
+  const char* pipe_desc = /*argv[2] ? argv[2] : */ "videoconvert ! fpsdisplaysink sync=false";
   videosink = gst_parse_bin_from_description(pipe_desc,TRUE,NULL);
 
   /* setup */
@@ -95,8 +97,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
 		"stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
 		"format", GST_FORMAT_TIME,
     "is-live", TRUE,
-    "min-latency", 0,
-    "max-latency", gst_util_uint64_scale_int (1, GST_SECOND, 30),
+    "block", TRUE,
     "do-timestamp", TRUE,
     NULL);
 
@@ -423,8 +424,13 @@ int main(int argc, char *argv[])
       continue;
     }
 
-    prepare_buffer((GstAppSrc*)appsrc,rgb);
+/// [gstreamer]
+    libfreenect2::Frame *newrgb = new libfreenect2::Frame(1920, 1080, 4);
+    memcpy(newrgb->data,rgb->data,1920*1080*4);
+
+    prepare_buffer((GstAppSrc*)appsrc,newrgb);
     g_main_context_iteration(g_main_context_default(),FALSE);
+/// [gstreamer]
 
 #ifdef EXAMPLES_WITH_OPENGL_SUPPORT
     if (enable_rgb)
@@ -445,12 +451,7 @@ int main(int argc, char *argv[])
 #endif
 
 /// [loop end]
-//
-    // don't let the listener free the frames, it will steal the rgb frame from the appsrc otherwise
-    delete depth;
-    delete ir;
-
-    //listener.release(frames);
+    listener.release(frames);
     /** libfreenect2::this_thread::sleep_for(libfreenect2::chrono::milliseconds(100)); */
   }
 /// [loop end]
