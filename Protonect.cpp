@@ -46,6 +46,13 @@
 // OpenCV stuff
 //
 
+/*#include <Eigen/Core>
+#include <SimpleRansac.h>
+#include <PlaneModel.h>
+
+PlaneModel<float> plane;
+*/
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <vector>
@@ -158,7 +165,7 @@ void buffer_destroy(gpointer data) {
 
 GstFlowReturn prepare_buffer(GstAppSrc* appsrc, libfreenect2::Frame* frame) {
 
-  guint size = 1920 * 1080 * 4;
+  guint size = 1280 * 720 * 4;
   GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
 
   return gst_app_src_push_buffer(appsrc, buffer);
@@ -185,8 +192,8 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
 				     "format", G_TYPE_STRING, "BGRA",
-				     "width", G_TYPE_INT, 1920,
-				     "height", G_TYPE_INT, 1080,
+				     "width", G_TYPE_INT, 1280,
+				     "height", G_TYPE_INT, 720,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
 				     NULL), NULL);
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
@@ -525,8 +532,11 @@ int main(int argc, char *argv[])
     }
 
 /// [gstreamer]
-    libfreenect2::Frame *newrgb = new libfreenect2::Frame(1920, 1080, 4);
-    memcpy(newrgb->data,rgb->data,1920*1080*4);
+    libfreenect2::Frame *newrgb = new libfreenect2::Frame(1280, 720, 4);
+
+    Mat input(1080,1920,CV_8UC4,rgb->data);
+    Mat output(720,1280,CV_8UC4,newrgb->data);
+    warpPerspective(input,output,pm,output.size(),INTER_NEAREST);
 
     prepare_buffer((GstAppSrc*)appsrc,newrgb);
     g_main_context_iteration(g_main_context_default(),FALSE);
