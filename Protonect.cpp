@@ -490,6 +490,7 @@ int main(int argc, char *argv[])
 /// [registration setup]
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
   libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
+  int color_map[512*424];
 /// [registration setup]
 
   size_t framecount = 0;
@@ -517,7 +518,7 @@ int main(int argc, char *argv[])
     if (enable_rgb && enable_depth)
     {
 /// [registration]
-      registration->apply(rgb, depth, &undistorted, &registered);
+      registration->apply(rgb, depth, &undistorted, &registered, false, NULL, color_map);
 /// [registration]
     }
 
@@ -526,6 +527,7 @@ int main(int argc, char *argv[])
     // use RANSAC to compute a plane out of sparse point cloud
     std::vector<Eigen::Vector3f> points;
     int dw = 512, dh = 424;
+    int cw = 1920, ch = 1080;
     if (find_plane) {
       for (int y = 0; y < dh; y++) {
         for (int x = 0; x < dw; x++) {
@@ -543,9 +545,6 @@ int main(int argc, char *argv[])
       find_plane = false;
     }
 
-    // calloc is never slower, and often _much_ faster, than malloc+memset
-    //uint32_t* new_frame = (uint32_t*)calloc( sizeof(uint32_t), 1920*1080 );
-
     for (int y = 0; y < dh; y++) {
       for (int x = 0; x < dw; x++) {
 
@@ -554,8 +553,15 @@ int main(int argc, char *argv[])
         if (std::isnan(pz) || std::isinf(pz) || pz <= 0) continue;
         Eigen::Vector3f point = { px, py, pz };
 
-        if (filter) if (fabs(plane.n.dot(point) - plane.d) < distance*0.01)
-          ((uint32_t*)registered.data)[y*dw+x] = 0;
+        if (filter) if (fabs(plane.n.dot(point) - plane.d) < distance*0.01) {
+          int index = color_map[y*dw+x];
+
+          // creates rectangular patch of size 5x3
+          if (index < cw+2 || index >= cw*(ch-1)-2) continue;
+          for (int ty = -cw; ty <= cw; ty += cw)
+            for (int tx = -2; tx <= 2; tx++)
+              ((uint32_t*)rgb->data)[index+ty+tx] = 0;
+        }
       }
     }
 
