@@ -103,6 +103,8 @@ bool *quit;
 
 float distance = 5;
 
+char* gstpipe = NULL;
+
 GstElement *gpipeline, *appsrc, *conv, *videosink;
 
 gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
@@ -187,7 +189,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
 
   // create pipeline from string
-  const char* pipe_desc = /*argv[2] ? argv[2] : */ "videoconvert ! fpsdisplaysink sync=false";
+  const char* pipe_desc = gstpipe ? gstpipe : "videoconvert ! fpsdisplaysink sync=false";
   videosink = gst_parse_bin_from_description(pipe_desc,TRUE,NULL);
 
   /* setup */
@@ -408,6 +410,11 @@ int main(int argc, char *argv[])
         std::cerr << "invalid frame count '" << argv[argI] << "'" << std::endl;
         return -1;
       }
+    }
+    else if(arg == "-gstpipe")
+    {
+      ++argI;
+      gstpipe = argv[argI];
     }
     else
     {
