@@ -99,7 +99,7 @@ Mat calcPerspective() {
 
 bool find_plane = true;
 bool filter = true;
-bool quit = false;
+bool *quit;
 
 float distance = 5;
 
@@ -138,11 +138,14 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
       // quit
       if (key == std::string("q"))
-        quit = true;
+        *quit = true;
 
       // change plane distance threshold
       if (key == std::string( "plus")) distance += 0.5;
       if (key == std::string("minus")) distance -= 0.5;
+
+      std::cout << "current distance: " << distance << std::endl;
+
       break;
 
     default:
@@ -470,6 +473,7 @@ int main(int argc, char *argv[])
 /// [listeners]
 
   gstreamer_init(argc,argv);
+  quit = &protonect_shutdown;
 
 /// [start]
   if (enable_rgb && enable_depth)
@@ -541,6 +545,7 @@ int main(int argc, char *argv[])
 
       std::cout << "3D point count: " << points.size() << std::endl;
       plane = ransac<PlaneModel<float>>( points, distance*0.01, 200 );
+      if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
       std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
       find_plane = false;
     }
@@ -553,7 +558,7 @@ int main(int argc, char *argv[])
         if (std::isnan(pz) || std::isinf(pz) || pz <= 0) continue;
         Eigen::Vector3f point = { px, py, pz };
 
-        if (filter) if (fabs(plane.n.dot(point) - plane.d) < distance*0.01) {
+        if (filter) if ((plane.n.dot(point) - plane.d) > -distance*0.01) {
           int index = color_map[y*dw+x];
 
           // creates rectangular patch of size 5x3
