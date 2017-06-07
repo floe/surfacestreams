@@ -583,7 +583,7 @@ int main(int argc, char *argv[])
           if (index < cw+2 || index >= cw*(ch-1)-2) continue;
           for (int ty = -cw; ty <= cw; ty += cw)
             for (int tx = -2; tx <= 2; tx++)
-              ((uint32_t*)rgb->data)[index+ty+tx] = 0;
+              ((uint32_t*)rgb->data)[index+ty+tx] = 0x0000FF00;
         }
       }
     }
