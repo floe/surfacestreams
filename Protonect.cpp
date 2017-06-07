@@ -66,6 +66,13 @@ Mat im = (Mat_<float>(3,3) << 1280.0/1920.0, 0, 0, 0, 720.0/1080.0, 0, 0, 0, 1 )
 // pm: perspective matrix
 Mat pm = im;
 
+void opencv_init() {
+
+  cv::FileStorage file("perspective.xml", cv::FileStorage::READ);
+  file["perspective"] >> pm;
+  if (!file.isOpened()) pm = im;
+}
+
 Mat calcPerspective() {
 
   Mat result;
@@ -76,6 +83,9 @@ Mat calcPerspective() {
   dst.push_back(Point2f(   0,720));
 
   result = getPerspectiveTransform(src,dst);
+
+  cv::FileStorage file("perspective.xml", cv::FileStorage::WRITE);
+  file << "perspective" << result;
 
   src.clear();
   dst.clear();
@@ -101,7 +111,7 @@ bool find_plane = true;
 bool filter = true;
 bool *quit;
 
-float distance = 5;
+float distance = 1;
 
 char* gstpipe = NULL;
 
@@ -479,6 +489,7 @@ int main(int argc, char *argv[])
   dev->setIrAndDepthFrameListener(&listener);
 /// [listeners]
 
+  opencv_init();
   gstreamer_init(argc,argv);
   quit = &protonect_shutdown;
 
