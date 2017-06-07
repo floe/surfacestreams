@@ -20,10 +20,10 @@ gst-launch-1.0 -e v4l2src device=/dev/video0 ! image/jpeg,width=1280,height=720,
 gst-launch-1.0 -vt \
   videomixer name=mix1 ! videoconvert ! fpsdisplaysink sync=false \
   videomixer name=mix2 sink_0::zorder=1 sink_1::zorder=0 ! videoconvert ! fpsdisplaysink sync=false \
-  videomixer name=mix3 ! videoconvert ! fpsdisplaysink sync=false \
+  videomixer name=mix3 background=black ! videoconvert ! fpsdisplaysink sync=false \
   videotestsrc pattern=snow ! video/x-raw,width=1280,height=720 ! tee name=snow ! queue ! mix1. \
   udpsrc port=5000 caps="application/x-rtp" ! rtpgstdepay ! jpegdec ! alpha method=green ! tee name=net ! queue ! mix1. \
-  videotestsrc pattern=colors ! video/x-raw,width=1280,height=720 ! alpha method=green ! tee name=col ! queue ! mix2. \
+  udpsrc port=5001 caps="application/x-rtp" ! rtpgstdepay ! jpegdec ! alpha method=green ! tee name=col ! queue ! mix2. \
   col.  ! queue ! mix3. \
   snow. ! queue ! mix2. \
   net.  ! queue ! mix3.
