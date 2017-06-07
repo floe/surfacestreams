@@ -195,7 +195,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
-				     "format", G_TYPE_STRING, "BGRA",
+				     "format", G_TYPE_STRING, "BGRx",
 				     "width", G_TYPE_INT, 1280,
 				     "height", G_TYPE_INT, 720,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
