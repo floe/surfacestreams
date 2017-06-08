@@ -9,6 +9,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <vector>
+#include <iostream>
 
 using namespace cv;
 
@@ -110,13 +111,15 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
 void buffer_destroy(gpointer data) {
   cv::Mat* done = (cv::Mat*)data;
-  done->release();
+  std::cout << "delete mat\n";
+  delete done;
 }
 
 GstFlowReturn prepare_buffer(GstAppSrc* appsrc, cv::Mat* frame) {
 
   guint size = 1280 * 720 * 4;
   GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
+  std::cout << "buffer = " << buffer << "\n";
 
   return gst_app_src_push_buffer(appsrc, buffer);
 }
@@ -177,18 +180,27 @@ int main(int argc, char* argv[]) {
   if (!cap.isOpened())  // check if succeeded to connect to the camera
     return 1;
 
+  //cv::VideoWriter video;
+
   cap.set(CV_CAP_PROP_FRAME_WIDTH,IN_W);
   cap.set(CV_CAP_PROP_FRAME_HEIGHT,IN_H);
+  Mat* output;
 
   while (!quit) {
+
     Mat input;
     cap >> input;
 
-    Mat output(720,1280,CV_8UC4);
-    warpPerspective(input,output,pm,output.size(),INTER_NEAREST);
+    output = new Mat(720,1280,CV_8UC4);
+    warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
-    prepare_buffer((GstAppSrc*)appsrc,&output);
+    imshow("foo",*output);
+
+    std::cout << "push_buffer prepare, output = " << output << ", data = " << (void*)(output->data) << "\n";
+    prepare_buffer((GstAppSrc*)appsrc,output);
+    std::cout << "push_buffer done\n";
     g_main_context_iteration(g_main_context_default(),FALSE);
+    std::cout << "context_iteration done\n";
 
   }
 
