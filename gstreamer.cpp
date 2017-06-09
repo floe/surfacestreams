@@ -111,7 +111,6 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
 void buffer_destroy(gpointer data) {
   cv::Mat* done = (cv::Mat*)data;
-  std::cout << "delete mat\n";
   delete done;
 }
 
@@ -119,7 +118,6 @@ GstFlowReturn prepare_buffer(GstAppSrc* appsrc, cv::Mat* frame) {
 
   guint size = 1280 * 720 * 4;
   GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
-  std::cout << "buffer = " << buffer << "\n";
 
   return gst_app_src_push_buffer(appsrc, buffer);
 }
@@ -144,7 +142,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
-				     "format", G_TYPE_STRING, "BGRx",
+				     "format", G_TYPE_STRING, "BGR",
 				     "width", G_TYPE_INT, 1280,
 				     "height", G_TYPE_INT, 720,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
@@ -191,17 +189,11 @@ int main(int argc, char* argv[]) {
     Mat input;
     cap >> input;
 
-    output = new Mat(720,1280,CV_8UC4);
+    output = new Mat(720,1280,CV_8UC3);
     warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
-    imshow("foo",*output);
-
-    std::cout << "push_buffer prepare, output = " << output << ", data = " << (void*)(output->data) << "\n";
     prepare_buffer((GstAppSrc*)appsrc,output);
-    std::cout << "push_buffer done\n";
     g_main_context_iteration(g_main_context_default(),FALSE);
-    std::cout << "context_iteration done\n";
-
   }
 
   /* clean up */
