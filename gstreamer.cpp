@@ -1,4 +1,4 @@
-// build with: g++ -Wall -ggdb -o gstreamer gstreamer.cpp $(pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
+// build with: g++ -DGSTREAMER_STANDALONE -Wall -ggdb -o gstreamer gstreamer.cpp $(pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -62,7 +62,11 @@ Mat calcPerspective() {
 
 #include <immintrin.h>
 
-bool quit = false;
+bool find_plane = true;
+bool filter = true;
+bool *quit;
+
+float distance = 1;
 
 char* gstpipe = NULL;
 
@@ -91,9 +95,23 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
       if (key == std::string("space"))
         pm = im;
 
+      // find largest plane
+      if (key == std::string("p"))
+        find_plane = true;
+
+      // subtract plane
+      if (key == std::string("f"))
+        filter = !filter;
+
       // quit
       if (key == std::string("q"))
-        quit = true;
+        *quit = true;
+
+      // change plane distance threshold
+      if (key == std::string( "plus")) distance += 0.5;
+      if (key == std::string("minus")) distance -= 0.5;
+
+      std::cout << "current distance: " << distance << std::endl;
 
       break;
 
@@ -109,6 +127,8 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
   return true;
 }
 
+#ifdef GSTREAMER_STANDALONE
+
 void buffer_destroy(gpointer data) {
   cv::Mat* done = (cv::Mat*)data;
   delete done;
@@ -122,7 +142,9 @@ GstFlowReturn prepare_buffer(GstAppSrc* appsrc, cv::Mat* frame) {
   return gst_app_src_push_buffer(appsrc, buffer);
 }
 
-void gstreamer_init(gint argc, gchar *argv[]) {
+#endif
+
+void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 
   /* init GStreamer */
   gst_init (&argc, &argv);
@@ -142,7 +164,7 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
-				     "format", G_TYPE_STRING, "BGR",
+				     "format", G_TYPE_STRING, type,
 				     "width", G_TYPE_INT, 1280,
 				     "height", G_TYPE_INT, 720,
 				     "framerate", GST_TYPE_FRACTION, 0, 1,
@@ -163,6 +185,8 @@ void gstreamer_init(gint argc, gchar *argv[]) {
   gst_element_set_state (gpipeline, GST_STATE_PLAYING);
 }
 
+#ifdef GSTREAMER_STANDALONE
+
 #define IN_W 1280
 #define IN_H  720
 
@@ -172,7 +196,7 @@ int main(int argc, char* argv[]) {
   if (argc > 1) gstpipe = argv[1];
 
   opencv_init();
-  gstreamer_init(argc,argv);
+  gstreamer_init(argc,argv,"BGR");
 
   cv::VideoCapture cap(0);
   if (!cap.isOpened())  // check if succeeded to connect to the camera
@@ -203,3 +227,4 @@ int main(int argc, char* argv[]) {
   return 0;
 }
 
+#endif
