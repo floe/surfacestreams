@@ -28,3 +28,5 @@ gst-launch-1.0 -vt \
   snow. ! queue ! mix2. \
   net.  ! queue ! mix3.
 
+# side-by-side video
+gst-launch-1.0 -e v4l2src device=/dev/video0 ! image/jpeg,width=1280,height=720,framerate=30/1 ! jpegdec ! videobox left=320 right=320 ! videomixer name=mix sink_0::xpos=0 sink_1::xpos=640 ! autovideosink  videotestsrc pattern=smpte ! "video/x-raw,format=BGRx,width=1280,height=720" ! videobox left=320 right=320 ! mix.
