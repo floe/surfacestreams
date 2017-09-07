@@ -193,6 +193,7 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 
 int main(int argc, char* argv[]) {
 
+  bool _quit = false; quit = &_quit;
   if (argc > 1) gstpipe = argv[1];
 
   opencv_init();
@@ -208,7 +209,7 @@ int main(int argc, char* argv[]) {
   cap.set(CV_CAP_PROP_FRAME_HEIGHT,IN_H);
   Mat* output;
 
-  while (!quit) {
+  while (!_quit) {
 
     Mat input;
     cap >> input;
