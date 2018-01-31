@@ -191,6 +191,7 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 
 #define IN_W 1280
 #define IN_H  720
+#define IN_F   15
 
 int get_v4l_devnum(const char* path) {
   char buf[128];
@@ -216,6 +217,7 @@ int main(int argc, char* argv[]) {
 
   cap.set(CV_CAP_PROP_FRAME_WIDTH,IN_W);
   cap.set(CV_CAP_PROP_FRAME_HEIGHT,IN_H);
+  cap.set(CV_CAP_PROP_FPS,IN_F);
   Mat* output;
 
   while (!_quit) {

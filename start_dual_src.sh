@@ -8,8 +8,8 @@ FACECAM=/dev/video-face
 SURFCAM=/dev/video-surf
 
 # view/stream mjpeg directly from v4l2 device
-# note: needs to run BEFORE protonect, otherwise no USB bandwidth left ("no space left on device")
-gst-launch-1.0 -e v4l2src device=$FACECAM ! image/jpeg,width=1280,height=720,framerate=30/1 ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((6000+$SLOT)) &
+# note: needs to run BEFORE protonect, otherwise no USB bandwidth left ("no space left on device") - limiting to 15fps to save more bandwidth
+gst-launch-1.0 -e v4l2src device=$FACECAM ! image/jpeg,width=1280,height=720,framerate=15/1 ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((6000+$SLOT)) &
 
 sleep 5
 
