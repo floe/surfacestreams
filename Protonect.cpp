@@ -409,14 +409,17 @@ int main(int argc, char *argv[])
     }
 
     // try to reduce background noise
+    // depth pixels that are set to zero in this loop are _foreground_
     for (int y = 0; y < dh; y++) {
       for (int x = 0; x < dw; x++) {
 
         float px,py,pz;
         registration->getPointXYZ(&undistorted,y,x,px,py,pz);
+        // areas with corrupt data: be conservative and assume they are foreground
         if (std::isnan(pz) || std::isinf(pz) || pz <= 0)
           ((float*)undistorted.data)[y*dw+x] = 0.0;
 
+        // areas _above_ the plane are definitely foreground
         Eigen::Vector3f point = { px, py, pz };
         if ((plane.n.dot(point) - plane.d) <= -distance*0.01) {
           ((float*)undistorted.data)[y*dw+x] = 0.0;
@@ -424,10 +427,11 @@ int main(int argc, char *argv[])
       }
     }
 
+    // erode depth image, i.e. expand foreground (zero) areas
     cv::Mat tmp(dh,dw,CV_32FC1,undistorted.data);
     erode(tmp,tmp,getStructuringElement(MORPH_RECT,Size(7,5)));
 
-    // blank out all pixels _below_ the plane
+    // blank out all remaining color pixels _below_ the plane
     for (int y = 0; y < dh; y++) {
       for (int x = 0; x < dw; x++) {
 
@@ -475,8 +479,8 @@ int main(int argc, char *argv[])
     }
     if (enable_depth)
     {
-      viewer.addFrame("ir", ir);
-      viewer.addFrame("depth", &undistorted);
+      viewer.addFrame("ir", &undistorted);
+      viewer.addFrame("depth", depth);
     }
     if (enable_rgb && enable_depth)
     {

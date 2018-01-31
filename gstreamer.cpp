@@ -109,8 +109,8 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
         *quit = true;
 
       // change plane distance threshold
-      if (key == std::string( "plus")) distance += 0.5;
-      if (key == std::string("minus")) distance -= 0.5;
+      if (key == std::string( "plus")) distance += 0.2;
+      if (key == std::string("minus")) distance -= 0.2;
 
       std::cout << "current distance: " << distance << std::endl;
 

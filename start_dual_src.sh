@@ -20,7 +20,7 @@ SURFPIPE="jpegenc ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((5
 
 if lsusb | grep -qi "045e:02d9" ; then
 	# Kinect connected
-	../build/bin/Protonect -gstpipe "$SURFPIPE"
+	../build/bin/Protonect -gstpipe "videorate ! video/x-raw,framerate=15/1 ! $SURFPIPE"
 elif lsusb | grep -qi "045e:0775" ; then
 	# SUR40 connected
 	gst-launch-1.0 -e v4l2src device=$SURFCAM ! "video/x-raw,format=GRAY8,width=960,height=540" ! $SURFPIPE
