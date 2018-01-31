@@ -429,6 +429,7 @@ int main(int argc, char *argv[])
 
     // erode depth image, i.e. expand foreground (zero) areas
     cv::Mat tmp(dh,dw,CV_32FC1,undistorted.data);
+    dilate(tmp,tmp,getStructuringElement(MORPH_RECT,Size(3,3)));
     erode(tmp,tmp,getStructuringElement(MORPH_RECT,Size(7,5)));
 
     // blank out all remaining color pixels _below_ the plane
