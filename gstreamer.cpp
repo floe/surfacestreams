@@ -10,6 +10,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <vector>
 #include <iostream>
+#include <unistd.h>
 
 using namespace cv;
 
@@ -159,23 +160,24 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 
   // create pipeline from string
   const char* pipe_desc = gstpipe ? gstpipe : "videoconvert ! fpsdisplaysink sync=false";
+  std::cout << "creating pipeline: " << pipe_desc << std::endl;
   videosink = gst_parse_bin_from_description(pipe_desc,TRUE,NULL);
 
   /* setup */
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
-				     "format", G_TYPE_STRING, type,
-				     "width", G_TYPE_INT, 1280,
-				     "height", G_TYPE_INT, 720,
-				     "framerate", GST_TYPE_FRACTION, 0, 1,
-				     NULL), NULL);
+      "format", G_TYPE_STRING, type,
+      "width", G_TYPE_INT, 1280,
+      "height", G_TYPE_INT, 720,
+      "framerate", GST_TYPE_FRACTION, 0, 1,
+    NULL), NULL);
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
   gst_element_link_many (appsrc, videosink, NULL);
 
   /* setup appsrc */
   g_object_set (G_OBJECT (appsrc),
-		"stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
-		"format", GST_FORMAT_TIME,
+    "stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
+    "format", GST_FORMAT_TIME,
     "is-live", TRUE,
     "block", TRUE,
     "do-timestamp", TRUE,
@@ -190,16 +192,23 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 #define IN_W 1280
 #define IN_H  720
 
+int get_v4l_devnum(const char* path) {
+  char buf[128];
+  int num,res = readlink(path,buf,sizeof(buf));
+  num = (res == -1) ? 0 : (int)(buf[res-1] - '0');
+  std::cout << "path " << (path?path:"NULL") << " maps to devnum " << num << std::endl;
+  return num;
+}
 
 int main(int argc, char* argv[]) {
 
   bool _quit = false; quit = &_quit;
-  if (argc > 1) gstpipe = argv[1];
+  if (argc > 2) gstpipe = argv[2];
 
   opencv_init();
   gstreamer_init(argc,argv,"BGR");
 
-  cv::VideoCapture cap(0);
+  cv::VideoCapture cap(get_v4l_devnum(argv[1]));
   if (!cap.isOpened())  // check if succeeded to connect to the camera
     return 1;
 
