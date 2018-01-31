@@ -23,7 +23,8 @@ elif lsusb | grep -qi "045e:0775" ; then
 	gst-launch-1.0 -e v4l2src device=$SURFCAM ! "video/x-raw,format=GRAY8,width=960,height=540" ! jpegenc ! $SURFPIPE
 else
 	# macmini with logitech c920
-	v4l2-ctl -d $SURFCAM -c focus_absolute=0,focus_auto=0
+	v4l2-ctl -d $SURFCAM -c focus_auto=0
+	v4l2-ctl -d $SURFCAM -c focus_absolute=0
 	./gstreamer $SURFCAM "$SURFPIPE"
 fi
 
