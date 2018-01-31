@@ -7,20 +7,23 @@ SLOT=${2:-0}
 FACECAM=/dev/video-face
 SURFCAM=/dev/video-surf
 
+# launch audio stream
+gst-launch-1.0 -e pulsesrc ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((7000+$SLOT)) &
+
 # view/stream mjpeg directly from v4l2 device
 # note: needs to run BEFORE protonect, otherwise no USB bandwidth left ("no space left on device") - limiting to 15fps to save more bandwidth
 gst-launch-1.0 -e v4l2src device=$FACECAM ! image/jpeg,width=1280,height=720,framerate=15/1 ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((6000+$SLOT)) &
 
 sleep 5
 
-SURFPIPE="rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((5000+$SLOT))"
+SURFPIPE="jpegenc ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((5000+$SLOT))"
 
 if lsusb | grep -qi "045e:02d9" ; then
 	# Kinect connected
 	../build/bin/Protonect -gstpipe "$SURFPIPE"
 elif lsusb | grep -qi "045e:0775" ; then
 	# SUR40 connected
-	gst-launch-1.0 -e v4l2src device=$SURFCAM ! "video/x-raw,format=GRAY8,width=960,height=540" ! jpegenc ! $SURFPIPE
+	gst-launch-1.0 -e v4l2src device=$SURFCAM ! "video/x-raw,format=GRAY8,width=960,height=540" ! $SURFPIPE
 else
 	# macmini with logitech c920
 	v4l2-ctl -d $SURFCAM -c focus_auto=0
