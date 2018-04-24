@@ -23,7 +23,7 @@ if lsusb | grep -qi "045e:02d9" ; then
 	../build/bin/Protonect -gstpipe "videorate ! video/x-raw,framerate=15/1 ! $SURFPIPE"
 elif lsusb | grep -qi "045e:0775" ; then
 	# SUR40 connected
-	gst-launch-1.0 -e v4l2src device=$SURFCAM ! "video/x-raw,format=GRAY8,width=960,height=540" ! $SURFPIPE
+	gst-launch-1.0 -e v4l2src device=/dev/v4l-touch0 ! "video/x-raw,format=GRAY8,width=960,height=540" ! $SURFPIPE
 else
 	# macmini with logitech c920
 	v4l2-ctl -d $SURFCAM -c focus_auto=0
