@@ -16,7 +16,7 @@ gst-launch-1.0 -e v4l2src device=$FACECAM ! image/jpeg,width=1280,height=720,fra
 
 sleep 5
 
-SURFPIPE="jpegenc ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((5000+$SLOT))"
+SURFPIPE="jpegenc quality=75 ! rtpgstpay config-interval=1 ! udpsink host=$TARGET port=$((5000+$SLOT))"
 
 if lsusb | grep -qi "045e:02d9" ; then
 	# Kinect connected
