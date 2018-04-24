@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+gstreamer
+perspective.xml
