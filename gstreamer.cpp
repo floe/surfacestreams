@@ -51,6 +51,17 @@ Mat calcPerspective() {
 
 ////////////////////////////////////////////////////////////////////////////////
 //
+// plane model stuff
+//
+
+#include <Eigen/Core>
+#include <SimpleRansac.h>
+#include <PlaneModel.h>
+
+PlaneModel<float> plane;
+
+////////////////////////////////////////////////////////////////////////////////
+//
 // GStreamer stuff
 //
 
@@ -145,6 +156,23 @@ GstFlowReturn prepare_buffer(GstAppSrc* appsrc, cv::Mat* frame) {
 
 #endif
 
+#ifdef GSTREAMER_LIBFREENECT2
+
+void buffer_destroy(gpointer data) {
+  libfreenect2::Frame* done = (libfreenect2::Frame*)data;
+  delete done;
+}
+
+GstFlowReturn prepare_buffer(GstAppSrc* appsrc, libfreenect2::Frame* frame) {
+
+  guint size = 1280 * 720 * 4;
+  GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
+
+  return gst_app_src_push_buffer(appsrc, buffer);
+}
+
+#endif
+
 void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 
   /* init GStreamer */
@@ -194,7 +222,7 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
 #define IN_F   15
 
 int get_v4l_devnum(const char* path) {
-  char buf[128];
+  char buf[128]; if (!path) path = "";
   int num,res = readlink(path,buf,sizeof(buf));
   num = (res == -1) ? 0 : (int)(buf[res-1] - '0');
   std::cout << "path " << (path?path:"NULL") << " maps to devnum " << num << std::endl;
