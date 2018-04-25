@@ -181,3 +181,15 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
   gst_element_set_state (gpipeline, GST_STATE_PLAYING);
 }
 
+GstFlowReturn prepare_buffer(guint size, gpointer data, void* frame, void (*cleanup)(void*)) {
+
+  GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, data, size, 0, size, frame, cleanup );
+
+  return gst_app_src_push_buffer((GstAppSrc*)appsrc, buffer);
+}
+
+void gstreamer_cleanup() {
+  /* clean up */
+  gst_element_set_state (gpipeline, GST_STATE_NULL);
+  gst_object_unref (GST_OBJECT (gpipeline));
+}

@@ -44,8 +44,7 @@ extern float distance;
 extern char* gstpipe;
 
 extern Mat pm;
-extern GstElement* appsrc;
-extern GstElement* gpipeline;
 
 void gstreamer_init(gint argc, gchar *argv[], const char* type);
-
+GstFlowReturn prepare_buffer(guint size, gpointer data, void* frame, void (*cleanup)(void*));
+void gstreamer_cleanup();

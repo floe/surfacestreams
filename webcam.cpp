@@ -5,14 +5,6 @@ void buffer_destroy(gpointer data) {
   delete done;
 }
 
-GstFlowReturn prepare_buffer(GstAppSrc* appsrc, cv::Mat* frame) {
-
-  guint size = 1280 * 720 * 4;
-  GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, (gpointer)(frame->data), size, 0, size, frame, buffer_destroy );
-
-  return gst_app_src_push_buffer(appsrc, buffer);
-}
-
 #ifdef GSTREAMER_LIBFREENECT2
 
 void buffer_destroy(gpointer data) {
@@ -69,13 +61,11 @@ int main(int argc, char* argv[]) {
     output = new Mat(720,1280,CV_8UC3);
     warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
-    prepare_buffer((GstAppSrc*)appsrc,output);
+    prepare_buffer(IN_W*IN_H*4,output->data,output,buffer_destroy);
     g_main_context_iteration(g_main_context_default(),FALSE);
   }
 
-  /* clean up */
-  gst_element_set_state (gpipeline, GST_STATE_NULL);
-  gst_object_unref (GST_OBJECT (gpipeline));
+  gstreamer_cleanup();
 
   return 0;
 }
