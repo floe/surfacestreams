@@ -32,4 +32,5 @@
 *.app
 
 gstreamer
+webcam
 perspective.xml
