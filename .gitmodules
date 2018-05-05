@@ -1,0 +1,4 @@
+[submodule "libfreenect2"]
+	path = libfreenect2
+	url = https://github.com/floe/libfreenect2.git
+	branch = gstreamer
