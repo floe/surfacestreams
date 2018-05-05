@@ -1,11 +1,5 @@
 #include "common.h"
 
-void buffer_destroy(gpointer data) {
-  cv::Mat* done = (cv::Mat*)data;
-  delete done;
-}
-
-
 #define IN_W 1280
 #define IN_H  720
 #define IN_F   15
@@ -45,7 +39,7 @@ int main(int argc, char* argv[]) {
     output = new Mat(720,1280,CV_8UC3);
     warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
-    prepare_buffer(IN_W*IN_H*4,output->data,output,buffer_destroy);
+    prepare_buffer(IN_W*IN_H*4,output->data,output);
     g_main_context_iteration(g_main_context_default(),FALSE);
   }
 
