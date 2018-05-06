@@ -26,9 +26,13 @@ int main(int argc, char* argv[]) {
 
   // Create a Pipeline - this serves as a top-level API for streaming and processing frames
   rs2::pipeline pipe;
+  rs2::config cfg;
+
+  cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
+  cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
 
   // Configure and start the pipeline
-  rs2::pipeline_profile profile = pipe.start();
+  rs2::pipeline_profile profile = pipe.start( cfg );
   float depth_scale = get_depth_scale(profile.get_device());
 
   // Create a rs2::align object.
