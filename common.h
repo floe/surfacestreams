@@ -46,5 +46,5 @@ extern char* gstpipe;
 extern Mat pm;
 
 void gstreamer_init(gint argc, gchar *argv[], const char* type);
-GstFlowReturn prepare_buffer(guint size, gpointer data, void* frame);
+void prepare_buffer(cv::Mat* input, int bw, int bh, int format);
 void gstreamer_cleanup();

@@ -186,11 +186,22 @@ void buffer_destroy(gpointer data) {
   delete done;
 }
 
-GstFlowReturn prepare_buffer(guint size, gpointer data, void* frame) {
+void prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
+
+  Mat* output = new Mat(bh,bw,format);
+  warpPerspective(*input,*output,pm,output->size(),INTER_NEAREST);
+
+  guint size = output->total()*output->elemSize();
+  gpointer data = output->data;
+  void* frame = output;
+
+  //prepare_buffer(IN_W*IN_H*4,output->data,output);
 
   GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, data, size, 0, size, frame, buffer_destroy );
 
-  return gst_app_src_push_buffer((GstAppSrc*)appsrc, buffer);
+  gst_app_src_push_buffer((GstAppSrc*)appsrc, buffer); // ignoring GstFlowReturn result for now
+
+  g_main_context_iteration(g_main_context_default(),FALSE);
 }
 
 void gstreamer_cleanup() {

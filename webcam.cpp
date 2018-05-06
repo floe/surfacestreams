@@ -29,18 +29,13 @@ int main(int argc, char* argv[]) {
   cap.set(CV_CAP_PROP_FRAME_WIDTH,IN_W);
   cap.set(CV_CAP_PROP_FRAME_HEIGHT,IN_H);
   cap.set(CV_CAP_PROP_FPS,IN_F);
-  Mat* output;
 
   while (!_quit) {
 
     Mat input;
     cap >> input;
 
-    output = new Mat(720,1280,CV_8UC3);
-    warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
-
-    prepare_buffer(IN_W*IN_H*4,output->data,output);
-    g_main_context_iteration(g_main_context_default(),FALSE);
+    prepare_buffer(&input,IN_W,IN_H,CV_8UC3);
   }
 
   gstreamer_cleanup();
