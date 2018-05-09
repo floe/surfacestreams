@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   if (argc > 2) gstpipe = argv[2];
 
   opencv_init();
-  gstreamer_init(argc,argv,"RGB");
+  gstreamer_init(argc,argv,"RGBx");
 
   // Create a Pipeline - this serves as a top-level API for streaming and processing frames
   rs2::pipeline pipe;
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   rs2::colorizer color_map;
 
   cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
-  cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGB8, 30);
+  cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGBA8, 30);
 
   // Configure and start the pipeline
   rs2::pipeline_profile profile = pipe.start( cfg );
@@ -131,8 +131,8 @@ int main(int argc, char* argv[]) {
     // Print the distance 
     std::cout << "The camera is facing an object " << dist_to_center << " meters away \r";
 
-    cv::Mat input(color_frame.get_height(),color_frame.get_width(),CV_8UC3,(uint8_t*)color_frame.get_data());
-    prepare_buffer(&input,1280,720,CV_8UC3);
+    cv::Mat input(color_frame.get_height(),color_frame.get_width(),CV_8UC4,(uint8_t*)color_frame.get_data());
+    prepare_buffer(&input,1280,720,CV_8UC4);
   }
 
 	gstreamer_cleanup();
