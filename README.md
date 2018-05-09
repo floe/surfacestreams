@@ -2,7 +2,13 @@
 
 Send background-subtracted depth camera video via GStreamer.
 
-This tool records live video of a flat surface with a depth camera, automatically detects the background plane, subtracts that from the video, and sends the result to a GStreamer pipeline. Everything that is part of the background within a configurable distance will turn bright green so it can be used with other GStreamer filters, e.g. using `alpha method=green` and `videomix`.
+This tool records live video of a flat surface with a depth camera, automatically detects the background plane, subtracts that from the video, and sends the result to a GStreamer pipeline. Everything that is part of the background within a configurable distance will turn bright green so it can be used with other GStreamer filters, e.g. using `alpha method=green` and `videomix`. Optionally, an arbitrary area in the raw stream can be extracted and rectified before streaming.
+
+Supported/tested devices:
+  * Intel Realsense D415 (using https://github.com/IntelRealSense/librealsense)
+  * Microsoft Kinect v2 (using https://github.com/floe/libfreenect2/tree/gstreamer)
+  * Generic Video4Linux2 camera (fallback without background subtraction)
+  * TBD: Samsung SUR40
 
 # random notes
   * UDP ports:
