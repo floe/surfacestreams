@@ -37,6 +37,24 @@ PlaneModel<float> ransac_plane(rs2::depth_frame* depth, rs2_intrinsics* intr, fl
 }
 
 
+void apply_to_color(rs2::depth_frame* depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame) {
+
+  // blank out all remaining color pixels _below_ the plane
+  for (int y = 0; y < dh; y++) {
+    for (int x = 0; x < dw; x++) {
+
+      float pt[3]; float px[2] = { x, y };
+      rs2_deproject_pixel_to_point( pt, intr, px, depth->get_distance(x,y) );
+      if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
+      Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
+
+      if ((plane->n.dot(point) - plane->d) > -distance*0.01) {
+        int index = y*cw+x;
+        ((uint32_t*)p_other_frame)[index] = 0x0000FF00;
+      }
+    }
+  }
+}
 
 int main(int argc, char* argv[]) {
 
@@ -95,7 +113,7 @@ int main(int argc, char* argv[]) {
     //rs2::video_frame color_frame = color_map(depth);
 
     if (find_plane) {
-      ransac_plane(&depth,&intrinsics,distance);
+      plane = ransac_plane(&depth,&intrinsics,distance);
       find_plane = false;
     }
 
@@ -109,6 +127,9 @@ int main(int argc, char* argv[]) {
     const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth.get_data());
     uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
+		apply_to_color(&depth,&intrinsics,distance,&plane,p_other_frame);
+
+/*
     for (int y = 0; y < height; y++) {
         auto depth_pixel_index = y * width;
         for (int x = 0; x < width; x++, ++depth_pixel_index) {
@@ -124,7 +145,7 @@ int main(int argc, char* argv[]) {
             }
         }
 		}
-    
+*/
     // Query the distance from the camera to the object in the center of the image
     float dist_to_center = depth.get_distance(width / 2, height / 2);
     
