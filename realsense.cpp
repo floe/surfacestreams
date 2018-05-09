@@ -1,21 +1,14 @@
-// based on https://github.com/IntelRealSense/librealsense/tree/master/examples/align
-// tested with librealsense2-2.10.4
+// based on:
+//   * https://github.com/IntelRealSense/librealsense/tree/master/examples/align
+//   * https://github.com/IntelRealSense/librealsense/tree/master/examples/measure
+// tested with:
+//   * librealsense2-2.10.4
+//   * librealsense2-2.11.0
 
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
 #include <iostream>
 #include "common.h"
-
-float get_depth_scale(rs2::device dev) {
-  // Go over the device's sensors
-  for (rs2::sensor& sensor : dev.query_sensors()) {
-    // Check if the sensor if a depth sensor
-    if (rs2::depth_sensor dpt = sensor.as<rs2::depth_sensor>()) {
-      return dpt.get_depth_scale();
-    }
-  }
-  throw std::runtime_error("Device does not have a depth sensor");
-}
 
 int dw = 1280, dh = 720;
 int cw = 1280, ch = 720;
@@ -63,7 +56,20 @@ int main(int argc, char* argv[]) {
 
   // Configure and start the pipeline
   rs2::pipeline_profile profile = pipe.start( cfg );
-  float depth_scale = get_depth_scale(profile.get_device());
+  float depth_scale = profile.get_device().first<rs2::depth_sensor>().get_depth_scale();
+
+  // TODO: At the moment the SDK does not offer a closed enum for D400 visual presets
+  // (because they keep changing)
+  // As a work-around we try to find the High-Density preset by name
+  // We do this to reduce the number of black pixels
+  // The hardware can perform hole-filling much better and much more power efficient then our software
+  auto sensor = profile.get_device().first<rs2::depth_sensor>();
+  auto range = sensor.get_option_range(RS2_OPTION_VISUAL_PRESET);
+  for (auto i = range.min; i < range.max; i += range.step) {
+		std::cout << sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i) << std::endl;
+    if (std::string(sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i)) == "High Density")
+      sensor.set_option(RS2_OPTION_VISUAL_PRESET, i);
+	}
 
   // Create a rs2::align object.
   // rs2::align allows us to perform alignment of depth frames to others frames
