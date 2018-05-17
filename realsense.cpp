@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
     const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth.get_data());
     uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
-		apply_to_color(&depth,&intrinsics,distance,&plane,p_other_frame);
+		if (filter) apply_to_color(&depth,&intrinsics,distance,&plane,p_other_frame);
 
 /*
     for (int y = 0; y < height; y++) {
