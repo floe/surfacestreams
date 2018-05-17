@@ -1,6 +1,6 @@
 # SurfaceStreams
 
-Sends background-subtracted depth camera video via GStreamer.
+Sends background-subtracted depth camera video via GStreamer (left: raw video, right: background removed).
 
 ![realsense example](demo.jpg)
 
