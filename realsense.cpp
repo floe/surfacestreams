@@ -10,32 +10,13 @@
 #include <iostream>
 #include "common.h"
 
-int dw = 1280, dh = 720;
-int cw = 1280, ch = 720;
+rs2::depth_frame* depthp;
+rs2_intrinsics intrinsics;
 
-// use RANSAC to compute a plane out of sparse point cloud
-PlaneModel<float> ransac_plane(rs2::depth_frame* depth, rs2_intrinsics* intr, float distance) {
-
-  std::vector<Eigen::Vector3f> points;
-
-  for (int y = 0; y < dh; y++) {
-    for (int x = 0; x < dw; x++) {
-      float pt[3]; float px[2] = { x, y };
-      rs2_deproject_pixel_to_point( pt, intr, px, depth->get_distance(x,y) );
-      if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
-      Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
-      points.push_back( point );
-    }
-  }
-
-  std::cout << "3D point count: " << points.size() << std::endl;
-  PlaneModel<float> plane = ransac<PlaneModel<float>>( points, distance*0.01, 200 );
-  if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
-  std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
-
-  return plane;
+void get_3d_point(int x, int y, float* out) {
+    float px[2] = { (float)x, (float)y };
+    rs2_deproject_pixel_to_point( out, &intrinsics, px, depthp->get_distance(x,y) );
 }
-
 
 void apply_to_color(rs2::depth_frame* depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame) {
 
@@ -61,7 +42,7 @@ int main(int argc, char* argv[]) {
   bool _quit = false; quit = &_quit;
   if (argc > 2) gstpipe = argv[2];
 
-  opencv_init();
+  opencv_init(1280,720,1280,720);
   gstreamer_init(argc,argv,"RGBx");
 
   // Create a Pipeline - this serves as a top-level API for streaming and processing frames
@@ -95,7 +76,7 @@ int main(int argc, char* argv[]) {
   rs2::align align(RS2_STREAM_COLOR);
 
   auto stream = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
-  auto intrinsics = stream.get_intrinsics(); // Calibration data
+  intrinsics = stream.get_intrinsics(); // Calibration data
 
   while (!_quit) {
 
@@ -109,11 +90,12 @@ int main(int argc, char* argv[]) {
 
     // Try to get a frame of a depth image
     rs2::depth_frame depth = processed.get_depth_frame(); 
+    depthp = &depth;
 
     //rs2::video_frame color_frame = color_map(depth);
 
     if (find_plane) {
-      plane = ransac_plane(&depth,&intrinsics,distance);
+      plane = ransac_plane(get_3d_point);
       find_plane = false;
     }
 

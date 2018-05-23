@@ -1,27 +1,10 @@
-int dw = 512, dh = 424;
-int cw = 1920, ch = 1080;
+libfreenect2::Registration* registration;
+libfreenect2::Frame* undistorted;
 
-// use RANSAC to compute a plane out of sparse point cloud
-PlaneModel<float> ransac_plane(libfreenect2::Registration* registration, libfreenect2::Frame* undistorted, float distance) {
-
-  std::vector<Eigen::Vector3f> points;
-
-  for (int y = 0; y < dh; y++) {
-    for (int x = 0; x < dw; x++) {
-      float px,py,pz;
-      registration->getPointXYZ(undistorted,y,x,px,py,pz);
-      if (std::isnan(pz) || std::isinf(pz) || pz <= 0) continue;
-      Eigen::Vector3f point = { px, py, pz };
-      points.push_back( point );
-    }
-  }
-
-  std::cout << "3D point count: " << points.size() << std::endl;
-  PlaneModel<float> plane = ransac<PlaneModel<float>>( points, distance*0.01, 200 );
-  if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
-  std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
-
-  return plane;
+void get_3d_point(int x, int y, float* out) {
+    float px,py,pz;
+    registration->getPointXYZ(undistorted,y,x,px,py,pz);
+    out[0] = px; out[1] = py; out[2] = pz;
 }
 
 void denoise_depth(libfreenect2::Registration* registration, libfreenect2::Frame* undistorted, float distance, PlaneModel<float>* plane) {
@@ -74,4 +57,3 @@ void apply_to_color(libfreenect2::Registration* registration, libfreenect2::Fram
     }
   }
 }
-
