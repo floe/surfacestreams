@@ -13,7 +13,8 @@
 
 using namespace cv;
 
-void opencv_init();
+extern int dw, dh, cw, ch;
+void opencv_init(int dw, int dh, int cw, int ch);
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -25,6 +26,7 @@ void opencv_init();
 #include <PlaneModel.h>
 
 extern PlaneModel<float> plane;
+PlaneModel<float> ransac_plane(void (*get_3d_pt)(int,int,float*));
 
 ////////////////////////////////////////////////////////////////////////////////
 //

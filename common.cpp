@@ -14,6 +14,11 @@
 
 using namespace cv;
 
+// default values from Kinect v2
+int dw = 512, dh = 424;
+int cw = 1920, ch = 1080;
+int tw = 1280, th = 720;
+
 std::vector<Point2f> src;
 std::vector<Point2f> dst;
 
@@ -22,8 +27,8 @@ Mat im = (Mat_<float>(3,3) << 1280.0/1920.0, 0, 0, 0, 720.0/1080.0, 0, 0, 0, 1 )
 // pm: perspective matrix
 Mat pm = im;
 
-void opencv_init() {
-
+void opencv_init(int _dw, int _dh, int _cw, int _ch) {
+  dw = _dw; dh = _dh; cw = _cw; ch = _ch;
   cv::FileStorage file("perspective.xml", cv::FileStorage::READ);
   file["perspective"] >> pm;
   if (!file.isOpened()) pm = im;
@@ -59,6 +64,29 @@ Mat calcPerspective() {
 #include <PlaneModel.h>
 
 PlaneModel<float> plane;
+
+// use RANSAC to compute a plane out of sparse point cloud
+PlaneModel<float> ransac_plane(void (*get_3d_pt)(int,int,float*)) {
+
+  std::vector<Eigen::Vector3f> points;
+
+  for (int y = 0; y < dh; y++) {
+    for (int x = 0; x < dw; x++) {
+      float pt[3];
+      get_3d_pt(x,y,pt);
+      if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
+      Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
+      points.push_back( point );
+    }
+  }
+
+  std::cout << "3D point count: " << points.size() << std::endl;
+  PlaneModel<float> plane = ransac<PlaneModel<float>>( points, distance*0.01, 200 );
+  if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
+  std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
+
+  return plane;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //

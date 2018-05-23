@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
   bool _quit = false; quit = &_quit;
   if (argc > 2) gstpipe = argv[2];
 
-  opencv_init();
+  opencv_init(-1,-1,IN_W,IN_H);
   gstreamer_init(argc,argv,"BGR");
 
   cv::VideoCapture cap(get_v4l_devnum(argv[1]));
