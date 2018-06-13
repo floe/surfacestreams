@@ -1,6 +1,6 @@
 # SurfaceStreams
 
-Sends background-subtracted depth camera video via GStreamer (left: raw video, right: background removed).
+Sends background-subtracted depth camera video via ![GStreamer](https://gstreamer.freedesktop.org/) (left: raw video, right: background removed).
 
 ![realsense example](demo.jpg)
 
@@ -13,6 +13,7 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
   * `space` - reset the perspective transformation
   * `mouse` - create new perspective transformation 
     * click the 4 corners of the desired quadrilateral area in succession
+    * first click defines top-left corner, rest in clockwise order
     * transformation will be saved as `perspective.xml` in current directory
   * `p` - re-run the RANSAC plane detection
   * `f` - toggle filtering of the background plane
@@ -41,7 +42,7 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
     * 600x: front cam stream, 1280x720, MJPEG in GStreamer buffers
     * 700x: raw audio stream in GStreamer buffers
   * camera USB bandwidth allocation is a problem
-    * needs uvcvideo quirks parameter (see uvcvideo.conf) and limited FPS
-    * check with: $ cat /sys/kernel/debug/usb/devices | grep "B: "
-  * inconsistent camera device naming is fixed by 99-camera-symlink.rules
-  * table display size: 89x50cm
+    * needs uvcvideo quirks parameter (see `uvcvideo.conf`) and limited FPS
+    * check with: `$ cat /sys/kernel/debug/usb/devices | grep "B: "`
+  * inconsistent camera device naming is fixed by `99-camera-symlink.rules`
+  * default table display size: 89x50cm
