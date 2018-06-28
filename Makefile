@@ -1,7 +1,10 @@
-all: webcam realsense kinect
+all: webcam sur40 realsense kinect
 
 webcam: webcam.cpp common.cpp
 	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ -I /usr/include/eigen3/ -I include/ $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
+
+sur40: webcam.cpp common.cpp
+	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ -DSUR40 -I /usr/include/eigen3/ -I include/ $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
 
 realsense: realsense.cpp common.cpp
 	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ -I /usr/include/eigen3/ -I include/ -lrealsense2 $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
