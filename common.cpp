@@ -23,12 +23,13 @@ std::vector<Point2f> src;
 std::vector<Point2f> dst;
 
 // im: identity matrix
-Mat im = (Mat_<float>(3,3) << 1280.0/1920.0, 0, 0, 0, 720.0/1080.0, 0, 0, 0, 1 );
+Mat im = Mat(3,3,CV_32FC1);
 // pm: perspective matrix
 Mat pm = im;
 
 void opencv_init(int _dw, int _dh, int _cw, int _ch) {
   dw = _dw; dh = _dh; cw = _cw; ch = _ch;
+  im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
   cv::FileStorage file("perspective.xml", cv::FileStorage::READ);
   file["perspective"] >> pm;
   if (!file.isOpened()) pm = im;
@@ -38,10 +39,10 @@ Mat calcPerspective() {
 
   Mat result;
 
-  dst.push_back(Point2f(   0,  0));
-  dst.push_back(Point2f(1280,  0));
-  dst.push_back(Point2f(1280,720));
-  dst.push_back(Point2f(   0,720));
+  dst.push_back(Point2f( 0, 0));
+  dst.push_back(Point2f(tw, 0));
+  dst.push_back(Point2f(tw,th));
+  dst.push_back(Point2f( 0,th));
 
   result = getPerspectiveTransform(src,dst);
 
@@ -125,7 +126,7 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
     // calibration: top (left, right), bottom (left, right)
     case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
       gst_navigation_event_parse_mouse_button_event(event,&b,&x,&y);
-      src.push_back(Point2f(1920.0*x/1280.0,1080.0*y/720.0));
+      src.push_back(Point2f((float)cw*x/(float)tw,(float)ch*y/(float)th));
       break;
 
     case GST_NAVIGATION_EVENT_KEY_PRESS:
@@ -189,8 +190,8 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
   g_object_set (G_OBJECT (appsrc), "caps",
     gst_caps_new_simple ("video/x-raw",
       "format", G_TYPE_STRING, type,
-      "width", G_TYPE_INT, 1280,
-      "height", G_TYPE_INT, 720,
+      "width",  G_TYPE_INT, tw,
+      "height", G_TYPE_INT, th,
       "framerate", GST_TYPE_FRACTION, 0, 1,
     NULL), NULL);
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
@@ -216,7 +217,7 @@ void buffer_destroy(gpointer data) {
 
 void prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
 
-  Mat* output = new Mat(bh,bw,format);
+  Mat* output = new Mat(th,tw,format);
   warpPerspective(*input,*output,pm,output->size(),INTER_NEAREST);
 
   guint size = output->total()*output->elemSize();
