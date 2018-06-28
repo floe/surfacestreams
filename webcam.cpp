@@ -19,13 +19,13 @@ int main(int argc, char* argv[]) {
 
   opencv_init(-1,-1,IN_W,IN_H);
   gstreamer_init(argc,argv,"BGR");
+  //gstreamer_init(argc,argv,"GRAY8");
 
   cv::VideoCapture cap(get_v4l_devnum(argv[1]));
   if (!cap.isOpened())  // check if succeeded to connect to the camera
     return 1;
 
-  //cv::VideoWriter video;
-
+  //cap.set(CV_CAP_PROP_CONVERT_RGB, false);
   cap.set(CV_CAP_PROP_FRAME_WIDTH,IN_W);
   cap.set(CV_CAP_PROP_FRAME_HEIGHT,IN_H);
   cap.set(CV_CAP_PROP_FPS,IN_F);
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     Mat input;
     cap >> input;
 
-    prepare_buffer(&input,IN_W,IN_H,CV_8UC3);
+    prepare_buffer(&input,IN_W,IN_H,input.type());
   }
 
   gstreamer_cleanup();
