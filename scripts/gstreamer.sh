@@ -18,6 +18,8 @@ gst-launch-1.0 -e v4l2src device=/dev/video0 ! image/jpeg,width=1280,height=720,
 
 # view/stream SUR40 device
 gst-launch-1.0 -e v4l2src device=/dev/v4l-touch0 ! video/x-raw,format=GRAY8,width=960,height=540,framerate=60/1 ! videoconvert ! autovideosink
+gst-launch-1.0 -e v4l2src device=/dev/v4l-touch0 ! video/x-raw,format=GRAY8,width=960,height=540 ! videorate ! video/x-raw,framerate=15/1 ! jpegenc quality=75 ! rtpgstpay config-interval=1 ! udpsink host=flunder port=5000
+gst-launch-1.0 -v udpsrc port=5000 caps="application/x-rtp" ! rtpgstdepay ! jpegdec ! videoconvert ! videobalance contrast=1.5 brightness=-0.5 ! videoscale ! video/x-raw,width=1280,height=720 ! fpsdisplaysink sync=false
 
 # 3 mixers with 3 sources :-O
 gst-launch-1.0 -vt \
