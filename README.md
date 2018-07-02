@@ -34,6 +34,10 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
   * opencv-3.4.1
   * librealsense-2.11 (https://github.com/IntelRealSense/librealsense)
   * libfreenect-0.2-gstreamer (https://github.com/floe/libfreenect2/tree/gstreamer)
+  
+### License
+
+SurfaceStreams is licensed under the GNU Lesser General Public License v3.0.
 
 ### random notes
 
