@@ -28,6 +28,6 @@ else
 	# macmini with logitech c920
 	v4l2-ctl -d $SURFCAM -c focus_auto=0
 	v4l2-ctl -d $SURFCAM -c focus_absolute=0
-	./gstreamer $SURFCAM "$SURFPIPE"
+	./webcam $SURFCAM "$SURFPIPE"
 fi
 
