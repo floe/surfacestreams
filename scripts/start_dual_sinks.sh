@@ -5,7 +5,7 @@
 gst-launch-1.0 videotestsrc ! autovideosink &
 
 # wait for window to appear, rename it
-until SURF=$(wmctrl -l | grep gst-launch-1.0) ; do sleep 1 ; done
+until SURF=$(wmctrl -l | grep 'N/A N/A') ; do sleep 1 ; done
 SURF=$(echo $SURF | cut -f1 -d' ')
 wmctrl -i -r $SURF -T surface_sink ; sleep 1
 
@@ -13,12 +13,14 @@ wmctrl -i -r $SURF -T surface_sink ; sleep 1
 wmctrl -i -r $SURF -e 0,0,1100,-1,-1 ; sleep 2
 wmctrl -i -r $SURF -b add,fullscreen ; sleep 2
 
+exit
+
 # launch second sink on port 6000
 #gst-launch-1.0 udpsrc port=6000 caps="application/x-rtp" ! rtpgstdepay ! jpegdec ! videoconvert ! autovideosink &
 gst-launch-1.0 videotestsrc ! autovideosink &
 
 # wait for window to appear, rename it
-until FACE=$(wmctrl -l | grep gst-launch-1.0) ; do sleep 1 ; done
+until FACE=$(wmctrl -l | grep 'N/A N/A') ; do sleep 1 ; done
 FACE=$(echo $FACE | cut -f1 -d' ')
 wmctrl -i -r $FACE -T face_sink ; sleep 1
 

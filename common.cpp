@@ -235,6 +235,7 @@ void prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
 
 void gstreamer_cleanup() {
   /* clean up */
+  std::cout << "cleaning up" << std::endl;
   gst_element_set_state (gpipeline, GST_STATE_NULL);
   gst_object_unref (GST_OBJECT (gpipeline));
 }
