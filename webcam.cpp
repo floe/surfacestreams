@@ -7,8 +7,9 @@
 int get_v4l_devnum(const char* path) {
   char buf[128]; if (!path) path = "";
   int num,res = readlink(path,buf,sizeof(buf));
-  num = (res == -1) ? 0 : (int)(buf[res-1] - '0');
-  std::cout << "path " << path << " maps to devnum " << num << std::endl;
+  if (res == -1) { strncpy(buf,path,sizeof(buf)); res = strlen(buf); }
+  num = (int)(buf[res-1] - '0');
+  std::cout << "path " << path << " maps to " << buf << ", devnum " << num << std::endl;
   return num;
 }
 
