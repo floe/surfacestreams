@@ -70,6 +70,9 @@ int main(int argc, char* argv[]) {
       sensor.set_option(RS2_OPTION_VISUAL_PRESET, i);
 	}
 
+  sensor.set_option(RS2_OPTION_LASER_POWER, 360);
+  sensor.set_option(RS2_OPTION_DEPTH_UNITS, 0.0001);
+
   // Create a rs2::align object.
   // rs2::align allows us to perform alignment of depth frames to others frames
   //The "align_to" is the stream type to which we plan to align depth frames.
