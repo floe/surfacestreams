@@ -2,11 +2,11 @@
 
 Sends background-subtracted depth camera video via ![GStreamer](https://gstreamer.freedesktop.org/) (left: raw video, center: rectified, right: background removed).
 
-![realsense example](demo.jpg)
+![realsense example](assets/demo.jpg)
 
 This tool records live video of a flat surface with a depth camera, automatically detects the background plane, subtracts that from the video, and sends the result to a GStreamer pipeline. Everything that is part of the background within a configurable distance will turn bright green so it can be used with other GStreamer filters, e.g. using `alpha method=green` and `videomix`. Optionally, an arbitrary quadrilateral area in the raw image can be extracted and rectified before streaming (e.g. a projection screen).
 
-[![SurfaceStreams Video](thumb.jpg)](https://www.youtube.com/watch?v=Qe1BROtGyzI "SurfaceStreams Video")
+[![SurfaceStreams Video](assets/anim.gif)](https://www.youtube.com/watch?v=Qe1BROtGyzI "SurfaceStreams Video")
 
 ### Usage
 
