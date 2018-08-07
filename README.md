@@ -27,7 +27,7 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
 
   * Intel Realsense D415
   * Microsoft Kinect v2
-  * TBD: Samsung SUR40
+  * Samsung SUR40
   * Generic Video4Linux2 camera (without background subtraction)
 
 ### Library requirements:
@@ -51,4 +51,4 @@ SurfaceStreams is licensed under the GNU Lesser General Public License v3.0.
     * needs uvcvideo quirks parameter (see `uvcvideo.conf`) and limited FPS
     * check with: `$ cat /sys/kernel/debug/usb/devices | grep "B: "`
   * inconsistent camera device naming is fixed by `99-camera-symlink.rules`
-  * default table display size: 89x50cm
+  * default SUR40 table display size: 89x50cm
