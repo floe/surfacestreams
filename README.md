@@ -10,7 +10,7 @@ This tool records live video of a flat surface with a depth camera, automaticall
 
 ### Usage
 
-By default, all executables will run the GStreamer pipeline `videoconvert ! fpsdisplaysink` to provide a debug view. If you want any other pipeline, pass it as a single commandline parameter, e.g. `./realsense "jpegenc ! rtpgstpay ! udpsink"` to stream the compressed view over a network. In the debug view, the following commands are available:
+By default, all executables will run the GStreamer pipeline `videoconvert ! fpsdisplaysink` to provide a debug view. If you want any other pipeline, pass it as a single commandline parameter, e.g. `./realsense 0 "jpegenc ! rtpgstpay ! udpsink"` to stream the compressed view over a network (first parameter is camera number). In the debug view, the following commands are available:
 
   * `space` - reset the perspective transformation
   * `mouse` - create new perspective transformation 
