@@ -1,8 +1,8 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
-std::vector< std::vector<cv::KeyPoint>* > templates_k;
-std::vector< cv::Mat* > templates_d;
+std::vector< std::vector<cv::KeyPoint> > templates_k;
+std::vector< cv::Mat > templates_d;
 std::vector< cv::Mat > templates;
 
 Ptr<cv::Feature2D> orb;
@@ -13,15 +13,16 @@ void init_objects(std::vector<std::string> files) {
   
   orb = ORB::create(MAX_FEATURES);
   matcher = DescriptorMatcher::create("BruteForce-Hamming");
+  //matcher = cv::FlannBasedMatcher(cv::makePtr<cv::flann::LshIndexParams>(12, 20, 2)); 
   
   for (auto file: files) {
 
     Mat gray = imread(file,CV_LOAD_IMAGE_GRAYSCALE);
 
-    auto kp = new std::vector<cv::KeyPoint>();
-    auto dp = new Mat();
+    std::vector<cv::KeyPoint> kp;
+    Mat dp;
 
-    orb->detectAndCompute(gray, Mat(), *kp, *dp);
+    orb->detectAndCompute(gray, Mat(), kp, dp);
 
     templates_k.push_back(kp);
     templates_d.push_back(dp);
@@ -39,24 +40,32 @@ void track_objects(cv::Mat input) {
   orb->detectAndCompute(gray, Mat(), keypoints, descriptors);
 
   for (unsigned int i = 0; i < templates_d.size(); i++) {
-    std::vector<KeyPoint>* kpt = templates_k[i];
-    cv::Mat* desc_t = templates_d[i];
+    std::vector<KeyPoint>& kpt = templates_k[i];
+    cv::Mat desc_t = templates_d[i];
 
     // only single result here
-    matcher->match(descriptors,*desc_t,matches); // queryDesc, trainDesc, matches
+    matcher->match(descriptors,desc_t,matches); // queryDesc, trainDesc, matches
 
     std::vector<DMatch> good;
     std::vector<Point2f> p1,p2;
-    for (auto match: matches)
-      if (match.distance < 30) {
+    double mindist = INT_MAX, maxdist = 0;
+    for (auto match: matches) {
+      if (match.distance < mindist) mindist = match.distance;
+      if (match.distance > maxdist) maxdist = match.distance;
+    }
+    std::cout << "min: " << mindist << " max: " << maxdist << std::endl;
+    double threshold = mindist + (maxdist - mindist) * 0.2;
+
+    for (auto match: matches) 
+      if (match.distance < threshold && match.distance < 50) { // FIXME hardcoded magic value
         //good.push_back( keypoints[ match.queryIdx] );
         good.push_back( match );
         p1.push_back( keypoints[ match.queryIdx ].pt );
-        p2.push_back( (*kpt)[ match.trainIdx ].pt );
+        p2.push_back( kpt[ match.trainIdx ].pt );
       }
 
     /*Mat newImg;
-    drawMatches(templates[i],*kpt,input,keypoints,good,newImg);
+    drawMatches(templates[i],kpt,input,keypoints,good,newImg);
     imshow("foo",newImg);
     cvWaitKey(1);*/
 
