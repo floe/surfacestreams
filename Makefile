@@ -1,13 +1,15 @@
-all: webcam sur40 realsense kinect
+TARGETS=webcam sur40 realsense
 
-webcam: webcam.cpp common.cpp
-	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ -I /usr/include/eigen3/ -I include/ $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
+all: $(TARGETS) kinect
 
-sur40: webcam.cpp common.cpp
-	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ -DSUR40 -I /usr/include/eigen3/ -I include/ $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
+%.o: %.cpp
+	g++ -c -D$(basename $@) -std=c++11 -O3 -Wall -ggdb -o $@ $^ -I /usr/include/eigen3/ -I include/ $(shell pkg-config --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
 
-realsense: realsense.cpp common.cpp
-	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ -I /usr/include/eigen3/ -I include/ -lrealsense2 $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv)
+$(TARGETS): %: %.o common.o
+	g++ -std=c++11 -O3 -Wall -ggdb -o $@ $^ $(shell pkg-config --libs gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv) -lrealsense2
+
+sur40.o: webcam.o
+	cp $^ $@
 
 kinect: libfreenect2 libfreenect2/examples/Protonect.cpp
 	make -C libfreenect2/build/
@@ -20,4 +22,4 @@ libfreenect2: libfreenect2/CMakeLists.txt
 	touch libfreenect2/
 
 clean:
-	-rm webcam realsense kinect
+	-rm $(TARGETS) *.o
