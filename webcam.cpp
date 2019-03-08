@@ -22,6 +22,8 @@ int main(int argc, char* argv[]) {
   gstreamer_init(argc,argv,"BGR");
   //gstreamer_init(argc,argv,"GRAY8");
 
+  init_objects({ "template.jpg" } );
+
   cv::VideoCapture cap(get_v4l_devnum(argv[1]));
   if (!cap.isOpened())  // check if succeeded to connect to the camera
     return 1;
@@ -34,6 +36,8 @@ int main(int argc, char* argv[]) {
 
     Mat input;
     cap >> input;
+
+    track_objects(input);
 
     #ifdef SUR40
     cap.set(CV_CAP_PROP_CONVERT_RGB, false);

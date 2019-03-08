@@ -12,6 +12,9 @@
 #include <iostream>
 #include <unistd.h>
 
+// FIXME this is a hack. what do you have a build system for?
+#include "tracker.cpp"
+
 using namespace cv;
 
 // default values from Kinect v2

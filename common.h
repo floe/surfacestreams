@@ -16,6 +16,9 @@ using namespace cv;
 extern int dw, dh, cw, ch;
 void opencv_init(int dw, int dh, int cw, int ch);
 
+void init_objects(std::vector<std::string> templates);
+void track_objects(Mat foo);
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // plane model stuff
