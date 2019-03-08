@@ -32,7 +32,7 @@ void init_objects(std::vector<std::string> files) {
 
 void track_objects(cv::Mat input) {
 
-  std::vector<DMatch> matches;
+  std::vector< std::vector<DMatch> > matches;
   std::vector<KeyPoint> keypoints;
   Mat descriptors;
 
@@ -44,25 +44,26 @@ void track_objects(cv::Mat input) {
     cv::Mat desc_t = templates_d[i];
 
     // only single result here
-    matcher->match(descriptors,desc_t,matches); // queryDesc, trainDesc, matches
+    matcher->knnMatch(descriptors,desc_t,matches,2); // queryDesc, trainDesc, matches
 
     std::vector<DMatch> good;
     std::vector<Point2f> p1,p2;
-    double mindist = INT_MAX, maxdist = 0;
+    /*double mindist = INT_MAX, maxdist = 0;
     for (auto match: matches) {
       if (match.distance < mindist) mindist = match.distance;
       if (match.distance > maxdist) maxdist = match.distance;
     }
     std::cout << "min: " << mindist << " max: " << maxdist << std::endl;
-    double threshold = mindist + (maxdist - mindist) * 0.2;
+    double threshold = mindist + (maxdist - mindist) * 0.2;*/
 
-    for (auto match: matches) 
-      if (match.distance < threshold && match.distance < 50) { // FIXME hardcoded magic value
-        //good.push_back( keypoints[ match.queryIdx] );
+    for (auto matchset: matches) {
+      if ((matchset.size() == 1) || (matchset[0].distance/matchset[1].distance < 0.5)) {
+        DMatch match = matchset[0];
         good.push_back( match );
         p1.push_back( keypoints[ match.queryIdx ].pt );
         p2.push_back( kpt[ match.trainIdx ].pt );
       }
+    }
 
     /*Mat newImg;
     drawMatches(templates[i],kpt,input,keypoints,good,newImg);
