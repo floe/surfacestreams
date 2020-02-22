@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=SurfaceStreams Source
+Exec=/home/floe/surface-streams/scripts/gst-src.sh 141.54.52.232
+Icon=camera-web
+Terminal=true
+Type=Application
+StartupNotify=true

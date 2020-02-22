@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=SurfaceStreams Sink
+Exec=/home/floe/surface-streams/scripts/gst-sink.sh
+Icon=video-display
+Terminal=true
+Type=Application
+StartupNotify=true

@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Swap SurfaceStreams Windows
+Exec=/home/floe/surface-streams/scripts/windowswap.sh
+Icon=object-flip-vertical
+Terminal=true
+Type=Application
+StartupNotify=true
