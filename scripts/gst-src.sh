@@ -1,4 +1,7 @@
 #!/bin/bash
+
+cd "$(dirname $0)"
+
 [ "$1" = "-r" ] && {
 	record="fork. ! queue ! filesink location=$(date '+%Y%m%d-%H%M%S').mpeg"
 	shift
