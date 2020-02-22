@@ -2,7 +2,7 @@
 
 #define IN_W 1280
 #define IN_H  720
-#define IN_F   15
+#define IN_F   10
 
 int get_v4l_devnum(const char* path) {
   char buf[128]; if (!path) path = "";
