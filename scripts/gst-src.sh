@@ -12,6 +12,4 @@ command="                              ! video/x-raw,width=1280,height=720,frame
 	mpegtsmux name=mux ! tee name=fork ! rtpmp2tpay ! udpsink host=$1 port=5000 $record"
 
 #gst-launch-1.0 -ve videotestsrc is-live=true $command
-../webcam /dev/video-surf "$command" &
-./windowfix.sh
-sleep 100d
+../webcam /dev/video-surf "$command"
