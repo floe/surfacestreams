@@ -1,4 +1,5 @@
 #include "common.h"
+#include <opencv2/video.hpp>
 
 #define IN_W 1280
 #define IN_H  720
@@ -30,6 +31,11 @@ int main(int argc, char* argv[]) {
   cap.set(CV_CAP_PROP_FRAME_HEIGHT,IN_H);
   cap.set(CV_CAP_PROP_FPS,IN_F);
 
+  #ifdef BGSUB
+    Ptr<BackgroundSubtractor> bgsub = createBackgroundSubtractorMOG2();
+    Mat mask(IN_H,IN_W,CV_8UC1);
+  #endif
+
   while (!_quit) {
 
     Mat input;
@@ -51,6 +57,27 @@ int main(int argc, char* argv[]) {
 	    out_data[i*3+1] = val;
 	    out_data[i*3+2] = val;
 	}
+    }
+    input = output;
+    #endif
+
+    #ifdef BGSUB
+    bgsub->apply(input,mask);
+    Mat output(IN_H,IN_W,CV_8UC3);
+    uint8_t* in_data = (uint8_t*)input.data;
+    uint8_t* out_data = (uint8_t*)output.data;
+    uint8_t* mask_data = (uint8_t*)mask.data;
+    for (int i = 0; i < IN_W*IN_H; i++) {
+      uint8_t val = mask_data[i];
+      if (val < 128) {
+        out_data[i*3+0] = 0;
+        out_data[i*3+1] = 0xFF;
+        out_data[i*3+2] = 0;
+      } else {
+        out_data[i*3+0] = in_data[i*3+0];
+        out_data[i*3+1] = in_data[i*3+1];
+        out_data[i*3+2] = in_data[i*3+2];
+      }
     }
     input = output;
     #endif
