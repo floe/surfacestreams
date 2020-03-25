@@ -1,5 +1,6 @@
 #include "common.h"
 #include <opencv2/video.hpp>
+#include <opencv2/objdetect.hpp>
 
 #define IN_W 1280
 #define IN_H  720
@@ -32,8 +33,12 @@ int main(int argc, char* argv[]) {
   cap.set(CV_CAP_PROP_FPS,IN_F);
 
   #ifdef BGSUB
+    CascadeClassifier face;
+    face.load("/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml");
     Ptr<BackgroundSubtractor> bgsub = createBackgroundSubtractorMOG2();
     Mat mask(IN_H,IN_W,CV_8UC1);
+    Mat mask_tmp(IN_H,IN_W,CV_8UC1);
+    Mat element = getStructuringElement( MORPH_RECT, Size( 3, 3 ) );
   #endif
 
   while (!_quit) {
@@ -62,8 +67,28 @@ int main(int argc, char* argv[]) {
     #endif
 
     #ifdef BGSUB
-    bgsub->apply(input,mask);
-    Mat output(IN_H,IN_W,CV_8UC3);
+    bgsub->apply(input,mask_tmp);
+    erode(mask_tmp,mask,element);
+    
+    Mat frame_gray;
+    cvtColor(input,frame_gray,COLOR_BGR2GRAY);
+    std::vector<Rect> faces;
+    face.detectMultiScale(frame_gray,faces);
+    for (size_t i = 0; i < faces.size(); i++ ) {
+      Point center( faces[i].x + faces[i].width/2, faces[i].y + faces[i].height/2 );
+      ellipse( mask, center, Size( faces[i].width/1.5, faces[i].height/1.5 ), 0, 0, 360, Scalar( 255, 255, 255 ), -1 );
+    }
+
+    std::vector< std::vector<Point> > contours;
+    std::vector<Vec4i> hierarchy;
+    findContours(mask,contours,hierarchy,RETR_CCOMP,CHAIN_APPROX_SIMPLE);
+    for(int idx = 0 ; idx >= 0; idx = hierarchy[idx][0] )
+    {
+        Scalar color( rand()&255, rand()&255, rand()&255 );
+        drawContours( input, contours, idx, color, FILLED, 8, hierarchy );
+    }
+
+/*    Mat output(IN_H,IN_W,CV_8UC3);
     uint8_t* in_data = (uint8_t*)input.data;
     uint8_t* out_data = (uint8_t*)output.data;
     uint8_t* mask_data = (uint8_t*)mask.data;
@@ -79,7 +104,7 @@ int main(int argc, char* argv[]) {
         out_data[i*3+2] = in_data[i*3+2];
       }
     }
-    input = output;
+    input = output;*/
     #endif
 
     prepare_buffer(&input,IN_W,IN_H,input.type());
