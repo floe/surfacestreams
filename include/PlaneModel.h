@@ -16,8 +16,8 @@ template <typename precision = double> struct PlaneModel
 	typedef Eigen::Matrix< precision, 3, 1 > _vector;
 	typedef Eigen::Matrix< precision, 3, 3 > _matrix;
 
-	_vector n;
-	double d;
+	_vector n = _vector(0.0,0.0,1.0);
+	double d = 1.25;
 
 	void compute(const std::vector<_vector>& data, const std::array<size_t,3>& indices)
 	{
