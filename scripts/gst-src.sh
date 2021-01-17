@@ -10,14 +10,15 @@ queue="queue max-size-time=200000000 leaky=downstream"
 	shift
 }
 
-videoenc1="videoconvert ! $queue ! x264enc noise-reduction=10000 tune=zerolatency byte-stream=true threads=2 key-int-max=15"
-videoenc2="videoconvert ! $queue ! vaapih264enc bitrate=2000 keyframe-period=10"
+videoenc1="videoconvert ! $queue ! x264enc noise-reduction=10000 speed-preset=ultrafast tune=zerolatency byte-stream=true threads=2 key-int-max=15"
+videoenc2="videoconvert ! $queue ! x264enc noise-reduction=10000 speed-preset=ultrafast tune=zerolatency byte-stream=true threads=2 key-int-max=15"
+
 audioenc0="$queue ! opusenc bitrate=8000"
 
 command="                                           ! video/x-raw,width=1280,height=720,framerate=10/1 ! $videoenc1 ! mux. \
-  v4l2src  do-timestamp=true device=/dev/video-surf ! video/x-raw,width=960,height=720,framerate=10/1  ! $videoenc2 ! mux. \
+  v4l2src  do-timestamp=true device=/dev/video-face ! video/x-raw,width=640,height=480,framerate=30/1  ! $videoenc2 ! mux. \
   pulsesrc do-timestamp=true                        ! audio/x-raw,channels=1,rate=16000                ! $audioenc0 ! mux. \
-  mpegtsmux name=mux ! tee name=fork ! rtpmp2tpay ! udpsink host=$1 port=5000 $record"
+  mpegtsmux name=mux ! tee name=fork ! rtpmp2tpay ! udpsink host=${1:-127.0.0.1} port=5000 $record"
 
-#gst-launch-1.0 -ve videotestsrc do-timestamp=true is-live=true $command
-../webcam /dev/video-surf "$command"
+gst-launch-1.0 -ve videotestsrc do-timestamp=true is-live=true $command
+#../webcam /dev/video-surf "$command"
