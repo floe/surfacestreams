@@ -14,13 +14,13 @@ pipeline = None
 
 def bus_call(bus, message, loop):
     t = message.type
-    sys.stdout.write(t)
+    print(t)
     if t == Gst.MessageType.EOS:
-        sys.stdout.write("End-of-stream\n")
+        print("End-of-stream")
         loop.quit()
     elif t == Gst.MessageType.ERROR:
         err, debug = message.parse_error()
-        sys.stderr.write("Error: %s: %s\n" % (err, debug))
+        print("Error: %s: %s" % (err, debug))
         loop.quit()
     return True
 
@@ -99,6 +99,11 @@ def main(args):
     pipeline.set_state(Gst.State.PLAYING)
 
     loop = GLib.MainLoop()
+
+    bus = pipeline.get_bus()
+    bus.add_signal_watch()
+    bus.connect ("message", bus_call, loop)
+
     try:
         loop.run()
     except:
