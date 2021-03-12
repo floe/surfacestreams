@@ -1,8 +1,12 @@
 #!/bin/bash
 cd "$(dirname $0)"
-gst-launch-1.0 -vtc udpsrc port=5000 ! application/x-rtp, media=video, clock-rate=90000, encoding-name=MP2T ! rtpjitterbuffer ! rtpmp2tdepay ! tsparse ! tsdemux name=mux \
-	mux. ! h264parse ! queue leaky=downstream ! avdec_h264 ! videoconvert ! fpsdisplaysink \
-	mux. ! h264parse ! queue leaky=downstream ! avdec_h264 ! videoconvert ! fpsdisplaysink \
-	mux. ! opusparse ! queue leaky=downstream ! opusdec ! autoaudiosink &
+
+queue="queue max-size-time=200000000 leaky=upstream"
+# maybe add rtpssrcdemux between jitterbuf and mp2ts-depay
+
+gst-launch-1.0 -vtc udpsrc port=5000 ! application/x-rtp,media=video,clock-rate=90000,encoding-name=MP2T ! rtpjitterbuffer do-lost=true ! rtpmp2tdepay ! tsparse set-timestamps=true ! tsdemux name=mux \
+	mux. ! opusparse ! $queue ! opusdec plc=true ! autoaudiosink \
+	mux. ! h264parse ! $queue ! avdec_h264 ! videoconvert ! fpsdisplaysink \
+	mux. ! h264parse ! $queue ! avdec_h264 ! videoconvert ! fpsdisplaysink
 #./windowfix.sh
-sleep 100d
+#sleep 100d
