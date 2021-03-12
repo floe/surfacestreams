@@ -7,6 +7,18 @@
 
 #include "common.h"
 
+k4a::calibration calibration;
+k4a::image depthImage;
+k4a::image colorImage;
+
+void get_3d_point(int x, int y, float* out) {
+		k4a_float2_t pt; pt.xy.x = (float)x; pt.xy.y = (float)y;
+		uint16_t* depthbuf = (uint16_t*)depthImage.get_buffer();
+		float depth = depthbuf[y*dw+x];
+		bool res = calibration.convert_2d_to_3d( pt, depth, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_COLOR, (k4a_float3_t*)out );
+		if (!res) out[2] = -1.0f;
+}
+
 int main( int argc, char* argv [] ) {
 
 	const uint32_t deviceCount = k4a::device::get_installed_count();
@@ -14,13 +26,13 @@ int main( int argc, char* argv [] ) {
 		throw std::runtime_error("No Azure Kinect devices detected!");
 	}
 
-  opencv_init(512,512,1280,720);
+  opencv_init(1024,1024,1280,720);
 	gstreamer_init(argc,argv,"BGRA");
 
 	// Start the device
 	k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
-	config.camera_fps = K4A_FRAMES_PER_SECOND_30;
-	config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
+	config.camera_fps = K4A_FRAMES_PER_SECOND_15;
+	config.depth_mode = K4A_DEPTH_MODE_WFOV_UNBINNED;
 	config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
 	config.color_resolution = K4A_COLOR_RESOLUTION_720P;
 	config.synchronized_images_only = true;
@@ -29,23 +41,28 @@ int main( int argc, char* argv [] ) {
 
 	k4a::device dev = k4a::device::open(K4A_DEVICE_DEFAULT);
 
-	k4a::calibration calibration = dev.get_calibration( config.depth_mode, config.color_resolution );
+	calibration = dev.get_calibration( config.depth_mode, config.color_resolution );
 	k4a::transformation transformation( calibration );
 
 	dev.start_cameras(&config);
 
 	std::cout << "Finished opening K4A device." << std::endl;
 
-	while (true) {
+	while (!quit) {
 
 		k4a::capture capture;
 		if (dev.get_capture(&capture, std::chrono::milliseconds(100))) {
 
-			const k4a::image depthImage = capture.get_depth_image();
-			const k4a::image colorImage = capture.get_color_image();
+			depthImage = capture.get_depth_image();
+			colorImage = capture.get_color_image();
 
 			// Depth data is in the form of uint16_t's representing the distance in
 			// millimeters of the pixel from the camera,
+
+			if (find_plane) {
+				plane = ransac_plane(get_3d_point);
+				find_plane = false;
+			}
 
 			k4a::image transformed_depth_image = transformation.depth_image_to_color_camera(depthImage);
 
