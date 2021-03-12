@@ -64,6 +64,25 @@ int main( int argc, char* argv [] ) {
 				find_plane = false;
 			}
 
+			// in the original depth image, zero all pixels with invalid data or below the plane
+			uint16_t* depthData = (uint16_t*)depthImage.get_buffer();
+			for (int y = 0; y < dh; ++y) {
+				for (int x = 0; x < dw; ++x) {
+
+					int index = y*dw+x;
+					k4a_float2_t pt; pt.xy.x = (float)x; pt.xy.y = (float)y;
+					uint16_t dv = depthData[index];
+					float depth = (float)dv;
+					float out[3];
+
+					bool res = calibration.convert_2d_to_3d( pt, depth, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_COLOR, (k4a_float3_t*)out );
+					Eigen::Vector3f point = { out[0], out[1], out[2] };
+
+					if ((!res) || ((plane.n.dot(point) - plane.d) > -distance*0.01))
+						depthData[index] = 0;
+				}
+			}
+
 			k4a::image transformed_depth_image = transformation.depth_image_to_color_camera(depthImage);
 
 			const int width = transformed_depth_image.get_width_pixels();
@@ -73,18 +92,19 @@ int main( int argc, char* argv [] ) {
 			assert(height == ch);
 
 			uint32_t* buffer = (uint32_t*)colorImage.get_buffer();
-			const uint16_t *depthData = reinterpret_cast<const uint16_t *>(transformed_depth_image.get_buffer());
-			for (int h = 0; h < height; ++h) {
-				for (int w = 0; w < width; ++w) {
-					const size_t currentPixel = static_cast<size_t>(h * width + w);
-					uint16_t dv = depthData[currentPixel];
-					/*dv = (dv > 1023 ? 1023 : dv);
-					dv = dv / 4;
-					uint8_t val = dv & 0xFF;
-          buffer[currentPixel] = (val << 24) | (val << 16) | (val << 8) | val;*/
-          if (dv >= 1000 || dv == 0) buffer[currentPixel] = 0;
+			depthData = (uint16_t*)transformed_depth_image.get_buffer();
+			if (filter)
+			for (int y = 0; y < height; ++y) {
+				for (int x = 0; x < width; ++x) {
+
+					int index = y*cw+x;
+					uint16_t dv = depthData[index];
+
+					if (dv == 0) 
+						buffer[index] = 0x0000FF00;
 				}
 			}
+
 			cv::Mat input(colorImage.get_height_pixels(),colorImage.get_width_pixels(),CV_8UC4,(uint8_t*)colorImage.get_buffer());
 
 			prepare_buffer(&input,1280,720,CV_8UC4);
