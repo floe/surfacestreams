@@ -35,6 +35,8 @@ webcam
 realsense
 kinect
 sur40
+k4a
 
 perspective.xml
 imgui.ini
+.~lock.*
