@@ -20,7 +20,7 @@ int main( int argc, char* argv [] ) {
 	// Start the device
 	k4a_device_configuration_t config = K4A_DEVICE_CONFIG_INIT_DISABLE_ALL;
 	config.camera_fps = K4A_FRAMES_PER_SECOND_30;
-	config.depth_mode = K4A_DEPTH_MODE_WFOV_2X2BINNED;
+	config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
 	config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
 	config.color_resolution = K4A_COLOR_RESOLUTION_720P;
 	config.synchronized_images_only = true;
@@ -61,10 +61,11 @@ int main( int argc, char* argv [] ) {
 				for (int w = 0; w < width; ++w) {
 					const size_t currentPixel = static_cast<size_t>(h * width + w);
 					uint16_t dv = depthData[currentPixel];
-					dv = (dv > 1023 ? 1023 : dv);
+					/*dv = (dv > 1023 ? 1023 : dv);
 					dv = dv / 4;
 					uint8_t val = dv & 0xFF;
-          buffer[currentPixel] = (val << 24) | (val << 16) | (val << 8) | val;
+          buffer[currentPixel] = (val << 24) | (val << 16) | (val << 8) | val;*/
+          if (dv >= 1000 || dv == 0) buffer[currentPixel] = 0;
 				}
 			}
 			cv::Mat input(colorImage.get_height_pixels(),colorImage.get_width_pixels(),CV_8UC4,(uint8_t*)colorImage.get_buffer());
