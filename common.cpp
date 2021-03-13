@@ -82,7 +82,7 @@ PlaneModel<float> ransac_plane(void (*get_3d_pt)(int,int,float*)) {
   }
 
   std::cout << "3D point count: " << points.size() << std::endl;
-  PlaneModel<float> plane = ransac<PlaneModel<float>>( points, distance*0.01, 200 );
+  PlaneModel<float> plane = ransac<PlaneModel<float>>( points, distance*10, 200 ); // FIXME distance multiplier is device-specific
   if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
   std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
 

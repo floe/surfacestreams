@@ -72,13 +72,14 @@ int main( int argc, char* argv [] ) {
 					int index = y*dw+x;
 					k4a_float2_t pt; pt.xy.x = (float)x; pt.xy.y = (float)y;
 					uint16_t dv = depthData[index];
+					if (dv == 0) continue;
 					float depth = (float)dv;
 					float out[3];
 
 					bool res = calibration.convert_2d_to_3d( pt, depth, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_COLOR, (k4a_float3_t*)out );
 					Eigen::Vector3f point = { out[0], out[1], out[2] };
 
-					if ((!res) || ((plane.n.dot(point) - plane.d) > -distance*0.01))
+					if ((!res) || ((plane.n.dot(point) - plane.d) > -distance*10))
 						depthData[index] = 0;
 				}
 			}
