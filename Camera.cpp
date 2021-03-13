@@ -1,4 +1,8 @@
-#include "common.h"
+#include "Camera.h"
+
+#include <vector>
+#include <iostream>
+#include <unistd.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -8,34 +12,27 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <vector>
-#include <iostream>
-#include <unistd.h>
 
 using namespace cv;
 
-// default values from Kinect v2
-int dw = 512, dh = 424;
-int cw = 1920, ch = 1080;
-int tw = 1280, th = 720;
+// final transmitted image dimensions
+const int tw = 1280, th = 720;
 
-std::vector<Point2f> src;
-std::vector<Point2f> dst;
-
-// im: identity matrix
-Mat im = Mat(3,3,CV_32FC1);
-// pm: perspective matrix
-Mat pm = im;
-
-void opencv_init(int _dw, int _dh, int _cw, int _ch) {
+Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh) {
   dw = _dw; dh = _dh; cw = _cw; ch = _ch;
   im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
   cv::FileStorage file("perspective.xml", cv::FileStorage::READ);
   file["perspective"] >> pm;
   if (!file.isOpened()) pm = im;
+
+  gstreamer_init(_type,_pipe);
+  find_plane = false;
+  do_filter = true;
+  do_quit = false;
+  distance = 1.0f; // in cm
 }
 
-Mat calcPerspective() {
+Mat Camera::calcPerspective() {
 
   Mat result;
 
@@ -64,10 +61,8 @@ Mat calcPerspective() {
 #include <SimpleRansac.h>
 #include <PlaneModel.h>
 
-PlaneModel<float> plane;
-
 // use RANSAC to compute a plane out of sparse point cloud
-PlaneModel<float> ransac_plane(void (*get_3d_pt)(int,int,float*)) {
+void Camera::ransac_plane() {
 
   std::vector<Eigen::Vector3f> points;
 
@@ -82,11 +77,21 @@ PlaneModel<float> ransac_plane(void (*get_3d_pt)(int,int,float*)) {
   }
 
   std::cout << "3D point count: " << points.size() << std::endl;
-  PlaneModel<float> plane = ransac<PlaneModel<float>>( points, distance*10, 200 ); // FIXME distance multiplier is device-specific
+  plane = ransac<PlaneModel<float>>( points, distance*10, 200 ); // FIXME distance multiplier is device-specific
   if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
   std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
+}
 
-  return plane;
+void Camera::push_point(float x, float y) {
+  src.push_back(Point2f((float)cw*x/(float)tw,(float)ch*y/(float)th));
+  if (src.size() == 4) {
+    Mat r = calcPerspective();
+    pm = r;
+  }
+}
+
+void Camera::get_3d_pt(int x, int y, float* out) {
+  out[0] = out[1] = out[2] = 0.0f;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -103,16 +108,6 @@ PlaneModel<float> ransac_plane(void (*get_3d_pt)(int,int,float*)) {
 
 #include <immintrin.h>
 
-bool find_plane = true;
-bool filter = true;
-bool *quit;
-
-float distance = 1;
-
-char* gstpipe = NULL;
-
-GstElement *gpipeline, *appsrc, *conv, *videosink;
-
 gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
   if (GST_EVENT_TYPE (event) != GST_EVENT_NAVIGATION)
@@ -120,17 +115,29 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
   double x,y; int b;
   const gchar* key;
+  Camera* cam = (Camera*)gst_pad_get_element_private(pad);
 
   switch (gst_navigation_event_get_type(event)) {
 
     // calibration: top (left, right), bottom (left, right)
     case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
       gst_navigation_event_parse_mouse_button_event(event,&b,&x,&y);
-      src.push_back(Point2f((float)cw*x/(float)tw,(float)ch*y/(float)th));
+      cam->push_point(x,y);
       break;
 
     case GST_NAVIGATION_EVENT_KEY_PRESS:
       gst_navigation_event_parse_key_event(event,&key);
+      cam->handle_key(key);
+      break;
+
+    default:
+      return false;
+  }
+
+  return true;
+}
+
+void Camera::handle_key(const char* key) {
 
       // reset perspective matrix
       if (key == std::string("space"))
@@ -142,36 +149,23 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
       // subtract plane
       if (key == std::string("f"))
-        filter = !filter;
+        do_filter = !do_filter;
 
       // quit
       if (key == std::string("q"))
-        *quit = true;
+        do_quit = true;
 
       // change plane distance threshold
       if (key == std::string( "plus")) distance += 0.2;
       if (key == std::string("minus")) distance -= 0.2;
 
       std::cout << "current distance: " << distance << std::endl;
-
-      break;
-
-    default:
-      return false;
-  }
-
-  if (src.size() == 4) {
-    Mat r = calcPerspective();
-    pm = r; //set_matrix(perspective,r.ptr<gdouble>(0));
-  }
-
-  return true;
 }
 
-void gstreamer_init(gint argc, gchar *argv[], const char* type) {
+void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
   /* init GStreamer */
-  gst_init (&argc, &argv);
+  gst_init (nullptr, nullptr);
 
   /* setup pipeline */
   gpipeline = gst_pipeline_new ("pipeline");
@@ -180,6 +174,7 @@ void gstreamer_init(gint argc, gchar *argv[], const char* type) {
   // attach event listener to appsrc pad
   GstPad* srcpad = gst_element_get_static_pad (appsrc, "src");
   gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
+  gst_pad_set_element_private( srcpad, (gpointer)this);
 
   // create pipeline from string
   const char* pipe_desc = gstpipe ? gstpipe : "videoconvert ! fpsdisplaysink sync=false";
@@ -215,7 +210,7 @@ void buffer_destroy(gpointer data) {
   delete done;
 }
 
-void prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
+void Camera::prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
 
   Mat* output = new Mat(th,tw,format);
   warpPerspective(*input,*output,pm,output->size(),INTER_NEAREST);
@@ -233,7 +228,7 @@ void prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
   g_main_context_iteration(g_main_context_default(),FALSE);
 }
 
-void gstreamer_cleanup() {
+void Camera::gstreamer_cleanup() {
   /* clean up */
   std::cout << "cleaning up" << std::endl;
   gst_element_set_state (gpipeline, GST_STATE_NULL);
