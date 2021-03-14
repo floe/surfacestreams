@@ -210,7 +210,7 @@ void buffer_destroy(gpointer data) {
   delete done;
 }
 
-void Camera::prepare_buffer(cv::Mat* input, int bw, int bh, int format) {
+void Camera::prepare_buffer(cv::Mat* input, int format) {
 
   Mat* output = new Mat(th,tw,format);
   warpPerspective(*input,*output,pm,output->size(),INTER_NEAREST);
