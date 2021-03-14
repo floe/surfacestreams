@@ -1,15 +1,22 @@
-CPPFLAGS=-std=c++11 -O3 -Wall -ggdb -I /usr/include/eigen3/ -I include/ $(shell pkg-config --libs --cflags gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv4)
+TARGETS=webcam sur40 realsense kinect k4a
+LIBS=gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv4
 
-all: webcam sur40 realsense kinect k4a
+CCFLAGS=-std=c++11 -O3 -Wall -ggdb -I /usr/include/eigen3/ -I include/ $(shell pkg-config --cflags ${LIBS})
+LDFLAGS=-std=c++11 -O3 -Wall -ggdb $(shell pkg-config --libs ${LIBS})
 
-%.o: %.cpp %.h
-	g++ -c -o $@ $< ${CPPFLAGS}
+all: ${TARGETS}
 
-webcam: webcam.cpp Camera.cpp
-	g++ -o $@ $^ ${CPPFLAGS}
+%.o: %.cpp
+	g++ -c -o $@ $< ${CCFLAGS}
 
-sur40: webcam.cpp Camera.cpp
-	g++ -o $@ $^ -DSUR40 ${CPPFLAGS}
+webcam_sur40.o: webcam.cpp
+	g++ -c -o $@ $< -DSUR40=SUR40 ${CCFLAGS} 
+
+webcam: webcam.o Camera.o
+	g++ -o $@ $^ ${LDFLAGS}
+
+sur40: webcam_sur40.o Camera.o SUR40.o
+	g++ -o $@ $^ ${LDFLAGS}
 
 realsense: realsense.cpp common.cpp
 	g++ -o $@ $^ ${CPPFLAGS} -lrealsense2
@@ -28,4 +35,4 @@ libfreenect2: libfreenect2/CMakeLists.txt
 	touch libfreenect2/
 
 clean:
-	-rm webcam sur40 realsense kinect k4a
+	-rm *.o ${TARGETS}

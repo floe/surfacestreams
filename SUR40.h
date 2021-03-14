@@ -3,11 +3,13 @@
 
 #include "Camera.h"
 
-class SUR40: Camera {
+class SUR40: public Camera {
 
-	SUR40(const char* pipe);
+	public:
 
-	void process_frames(cv::Mat* color, cv::Mat* depth = nullptr);
+		SUR40(const char* pipe);
+
+		void process_frames(cv::Mat* color, cv::Mat* depth = nullptr);
 
 };
 
