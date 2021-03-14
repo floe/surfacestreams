@@ -234,3 +234,6 @@ void Camera::gstreamer_cleanup() {
   gst_element_set_state (gpipeline, GST_STATE_NULL);
   gst_object_unref (GST_OBJECT (gpipeline));
 }
+
+void Camera::process_frames(cv::Mat* color, cv::Mat* depth) {
+}

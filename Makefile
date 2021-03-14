@@ -2,6 +2,9 @@ CPPFLAGS=-std=c++11 -O3 -Wall -ggdb -I /usr/include/eigen3/ -I include/ $(shell 
 
 all: webcam sur40 realsense kinect k4a
 
+%.o: %.cpp %.h
+	g++ -c -o $@ $< ${CPPFLAGS}
+
 webcam: webcam.cpp Camera.cpp
 	g++ -o $@ $^ ${CPPFLAGS}
 
