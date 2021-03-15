@@ -12,6 +12,14 @@ from gi.repository import Gst, GstBase, GLib
 
 pipeline = None
 
+def new_element(element_name,parameters={}):
+    element = Gst.ElementFactory.make(element_name)
+    for key,val in parameters.items():
+        element.set_property(key,val)
+    pipeline.add(element)
+    element.sync_state_with_parent()
+    return element
+
 def bus_call(bus, message, loop):
     t = message.type
     print(message.src,t)
@@ -33,62 +41,34 @@ def on_pad_added(src, pad, *user_data):
 
         print("adding video subqueue")
 
-        parse = Gst.ElementFactory.make("h264parse")
-        pipeline.add(parse)
+        parse = new_element("h264parse")
+        queue = new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } )
+        avdec = new_element("avdec_h264")
+        convert = new_element("videoconvert")
+        display = new_element("fpsdisplaysink")
+
         src.link(parse)
-        parse.sync_state_with_parent()
-
-        queue = Gst.ElementFactory.make("queue")
-        queue.set_property("max-size-time",200000000)
-        queue.set_property("leaky","upstream")
-        pipeline.add(queue)
         parse.link(queue)
-        queue.sync_state_with_parent()
-
-        avdec = Gst.ElementFactory.make("avdec_h264")
-        pipeline.add(avdec)
         queue.link(avdec)
-        avdec.sync_state_with_parent()
-
-        convert = Gst.ElementFactory.make("videoconvert")
-        pipeline.add(convert)
         avdec.link(convert)
-        convert.sync_state_with_parent()
-
-        display = Gst.ElementFactory.make("fpsdisplaysink")
-        pipeline.add(display)
         convert.link(display)
-        display.sync_state_with_parent()
 
     if name.startswith("audio"):
 
         print("adding audio subqueue")
 
-        parse = Gst.ElementFactory.make("opusparse")
-        pipeline.add(parse)
+        parse = new_element("opusparse")
+        queue = new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } )
+        avdec = new_element("opusdec", { "plc": True } )
+        output = new_element("autoaudiosink")
+
         src.link(parse)
-        parse.sync_state_with_parent()
-
-        queue = Gst.ElementFactory.make("queue")
-        queue.set_property("max-size-time",200000000)
-        queue.set_property("leaky","upstream")
-        pipeline.add(queue)
         parse.link(queue)
-        queue.sync_state_with_parent()
-
-        avdec = Gst.ElementFactory.make("opusdec")
-        avdec.set_property("plc",True)
-        pipeline.add(avdec)
         queue.link(avdec)
-        avdec.sync_state_with_parent()
-
-        output = Gst.ElementFactory.make("autoaudiosink")
-        pipeline.add(output)
         avdec.link(output)
-        output.sync_state_with_parent()
 
     pipeline.set_state(Gst.State.PLAYING)
-    print(pipeline)
+    #Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
 
 
 def main(args):
@@ -127,10 +107,6 @@ def main(args):
     pipeline.add(demux)
     demux.connect("pad-added",on_pad_added)
     parse.link(demux)
-
-    sink = Gst.ElementFactory.make("fakesink")
-    pipeline.add(sink)
-    demux.link(sink)
 
     pipeline.set_state(Gst.State.PLAYING)
 
