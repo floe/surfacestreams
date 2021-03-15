@@ -1,4 +1,4 @@
-TARGETS=webcam sur40 realsense kinect k4a
+TARGETS=webcam sur40 k4a realsense kinect
 LIBS=gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 opencv4
 
 CCFLAGS=-std=c++11 -O3 -Wall -ggdb -I /usr/include/eigen3/ -I include/ $(shell pkg-config --cflags ${LIBS})
@@ -18,8 +18,8 @@ sur40: webcam
 realsense: realsense.cpp common.cpp
 	g++ -o $@ $^ ${CPPFLAGS} -lrealsense2
 
-k4a: k4a.cpp common.cpp
-	g++ -o $@ $^ ${CPPFLAGS} -lk4a
+k4a: k4a.o Camera.o KinectAzure.o
+	g++ -o $@ $^ ${LDFLAGS} -lk4a
 
 kinect: libfreenect2 libfreenect2/examples/Protonect.cpp
 	make -C libfreenect2/build/

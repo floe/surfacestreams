@@ -19,7 +19,11 @@ class Camera {
 
 		void push_point(float x, float y);
 		void handle_key(const char* key);
+		void ransac_plane();
+
 		bool do_quit;
+		bool find_plane;
+		bool do_filter;
 
 	protected:
 
@@ -27,7 +31,6 @@ class Camera {
 		cv::Mat input;
 
 		PlaneModel<float> plane;
-		void ransac_plane();
 		virtual void get_3d_pt(int x, int y, float* out);
 
 		cv::Mat calcPerspective();
@@ -38,9 +41,6 @@ class Camera {
 
 		void gstreamer_init(const char* type, const char* gstpipe);
 		void gstreamer_cleanup();
-
-		bool find_plane;
-		bool do_filter;
 
 		std::vector<cv::Point2f> src;
 		std::vector<cv::Point2f> dst;
