@@ -106,8 +106,6 @@ void Camera::get_3d_pt(int x, int y, float* out) {
 #include <stdint.h>
 #include <string.h>
 
-#include <immintrin.h>
-
 gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
   if (GST_EVENT_TYPE (event) != GST_EVENT_NAVIGATION)
