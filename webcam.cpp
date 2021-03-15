@@ -6,7 +6,6 @@
 
 #define IN_W 1280
 #define IN_H  720
-#define IN_F   15
 
 int get_v4l_devnum(const char* path) {
   char buf[128]; if (!path) path = "/dev/video0";
@@ -23,9 +22,9 @@ int main(int argc, char* argv[]) {
   if (argc > 2) gstpipe = argv[2];
 
   #ifndef SUR40
-  V4L2 cam(gstpipe,get_v4l_devnum(argv[1]));
+  V4L2 cam(gstpipe,get_v4l_devnum(argv[1]),IN_W,IN_H);
   #else
-  SUR40 cam(gstpipe);
+  SUR40 cam(gstpipe,get_v4l_devnum(argv[1]));
   #endif
 
   while (!cam.do_quit) {

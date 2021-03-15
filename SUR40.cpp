@@ -3,12 +3,14 @@
 #define SUR40_W 960
 #define SUR40_H 540
 
-SUR40::SUR40(const char* pipe): Camera(pipe,"BGR",SUR40_W,SUR40_H) { }
+SUR40::SUR40(const char* pipe, int devnum): V4L2(pipe,devnum,SUR40_W,SUR40_H) {
+  cap.set(cv::CAP_PROP_CONVERT_RGB, false);
+}
 
-void SUR40::process_frames(cv::Mat* color, cv::Mat* depth) {
+void SUR40::remove_background() {
 
-  cv::Mat output(SUR40_W,SUR40_H,CV_8UC3);
-  uint8_t* in_data = (uint8_t*)color->data;
+  cv::Mat output(SUR40_H,SUR40_W,CV_8UC3);
+  uint8_t* in_data = (uint8_t*)input.data;
   uint8_t* out_data = (uint8_t*)output.data;
   for (int i = 0; i < SUR40_W*SUR40_H; i++) {
     uint8_t val = in_data[i];
@@ -23,5 +25,5 @@ void SUR40::process_frames(cv::Mat* color, cv::Mat* depth) {
     }
   }
   
-  *color = output;
+  input = output;
 }

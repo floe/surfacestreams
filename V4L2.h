@@ -9,7 +9,7 @@ class V4L2: public Camera {
 
 	public:
 
-		V4L2(const char* pipe, int devnum);
+		V4L2(const char* pipe, int devnum, int cw, int ch);
 
 		void retrieve_frames();
 

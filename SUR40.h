@@ -1,15 +1,15 @@
 #ifndef _SUR40_H_
 #define _SUR40_H_
 
-#include "Camera.h"
+#include "V4L2.h"
 
-class SUR40: public Camera {
+class SUR40: public V4L2 {
 
 	public:
 
-		SUR40(const char* pipe);
+		SUR40(const char* pipe, int devnum);
 
-		void process_frames(cv::Mat* color, cv::Mat* depth = nullptr);
+		void remove_background();
 
 };
 
