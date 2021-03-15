@@ -9,14 +9,11 @@ all: ${TARGETS}
 %.o: %.cpp
 	g++ -c -o $@ $< ${CCFLAGS}
 
-webcam_sur40.o: webcam.cpp
-	g++ -c -o $@ $< -DSUR40=SUR40 ${CCFLAGS} 
-
-webcam: webcam.o Camera.o V4L2.o
+webcam: webcam.o Camera.o V4L2.o SUR40.o
 	g++ -o $@ $^ ${LDFLAGS}
 
-sur40: webcam_sur40.o Camera.o SUR40.o
-	g++ -o $@ $^ ${LDFLAGS}
+sur40: webcam
+	ln -s $^ $@
 
 realsense: realsense.cpp common.cpp
 	g++ -o $@ $^ ${CPPFLAGS} -lrealsense2

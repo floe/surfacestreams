@@ -21,19 +21,20 @@ int main(int argc, char* argv[]) {
   char* gstpipe = nullptr;
   if (argc > 2) gstpipe = argv[2];
 
-  #ifndef SUR40
-  V4L2 cam(gstpipe,get_v4l_devnum(argv[1]),IN_W,IN_H);
-  #else
-  SUR40 cam(gstpipe,get_v4l_devnum(argv[1]));
-  #endif
+  Camera* cam;
 
-  while (!cam.do_quit) {
+  if (std::string(argv[0]).find("sur40") == std::string::npos)
+    cam = new V4L2(gstpipe,get_v4l_devnum(argv[1]),IN_W,IN_H);
+  else
+    cam = new SUR40(gstpipe,get_v4l_devnum(argv[1]));
 
-    cam.retrieve_frames();
+  while (!cam->do_quit) {
 
-    cam.remove_background();
+    cam->retrieve_frames();
 
-    cam.send_buffer();
+    cam->remove_background();
+
+    cam->send_buffer();
   }
 
   return 0;

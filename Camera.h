@@ -12,9 +12,9 @@ class Camera {
 
 		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0);
 
-		void retrieve_frames();
-		void remove_background();
-		void send_buffer();
+		virtual void retrieve_frames();
+		virtual void remove_background();
+		virtual void send_buffer();
 		//void prepare_buffer(cv::Mat* input, int format);
 
 		void push_point(float x, float y);
@@ -28,7 +28,7 @@ class Camera {
 
 		PlaneModel<float> plane;
 		void ransac_plane();
-		void get_3d_pt(int x, int y, float* out);
+		virtual void get_3d_pt(int x, int y, float* out);
 
 		cv::Mat calcPerspective();
 
