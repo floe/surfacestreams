@@ -16,9 +16,16 @@ def new_element(element_name,parameters={}):
     element = Gst.ElementFactory.make(element_name)
     for key,val in parameters.items():
         element.set_property(key,val)
-    pipeline.add(element)
-    element.sync_state_with_parent()
     return element
+
+def add_and_link(elements):
+    prev = None
+    for item in elements:
+        pipeline.add(item)
+        item.sync_state_with_parent()
+        if prev != None:
+            prev.link(item)
+        prev = item
 
 def bus_call(bus, message, loop):
     t = message.type
@@ -41,31 +48,24 @@ def on_pad_added(src, pad, *user_data):
 
         print("adding video subqueue")
 
-        parse = new_element("h264parse")
-        queue = new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } )
-        avdec = new_element("avdec_h264")
-        convert = new_element("videoconvert")
-        display = new_element("fpsdisplaysink")
-
-        src.link(parse)
-        parse.link(queue)
-        queue.link(avdec)
-        avdec.link(convert)
-        convert.link(display)
+        add_and_link([ src,
+            new_element("h264parse"),
+            new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
+            new_element("avdec_h264"),
+            new_element("videoconvert"),
+            new_element("fpsdisplaysink")
+        ])
 
     if name.startswith("audio"):
 
         print("adding audio subqueue")
 
-        parse = new_element("opusparse")
-        queue = new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } )
-        avdec = new_element("opusdec", { "plc": True } )
-        output = new_element("autoaudiosink")
-
-        src.link(parse)
-        parse.link(queue)
-        queue.link(avdec)
-        avdec.link(output)
+        add_and_link([ src,
+            new_element("opusparse"),
+            new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
+            new_element("opusdec", { "plc": True } ),
+            new_element("autoaudiosink")
+        ])
 
     pipeline.set_state(Gst.State.PLAYING)
     #Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
