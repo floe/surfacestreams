@@ -79,34 +79,19 @@ def main(args):
 
     pipeline = Gst.Pipeline()
 
-    udpsrc = Gst.ElementFactory.make("udpsrc")
-    udpsrc.set_property("port", 5000)
-    pipeline.add(udpsrc)
-
     caps = Gst.Caps.from_string("application/x-rtp,media=video,clock-rate=90000,encoding-name=MP2T")
-    filter = Gst.ElementFactory.make("capsfilter")
-    filter.set_property("caps", caps)
-    pipeline.add(filter)
-    udpsrc.link(filter)
 
-    jitbuf = Gst.ElementFactory.make("rtpjitterbuffer")
-    jitbuf.set_property("do-lost", True)
-    pipeline.add(jitbuf)
-    filter.link(jitbuf)
-
-    depay = Gst.ElementFactory.make("rtpmp2tdepay")
-    pipeline.add(depay)
-    jitbuf.link(depay)
-
-    parse = Gst.ElementFactory.make("tsparse")
-    parse.set_property("set-timestamps", True)
-    pipeline.add(parse)
-    depay.link(parse)
-
-    demux = Gst.ElementFactory.make("tsdemux")
-    pipeline.add(demux)
+    demux = new_element("tsdemux")
     demux.connect("pad-added",on_pad_added)
-    parse.link(demux)
+
+    add_and_link([
+        new_element("udpsrc", { "port": 5000 } ),
+        new_element("capsfilter", { "caps": caps } ),
+        new_element("rtpjitterbuffer", { "do-lost": True } ),
+        new_element("rtpmp2tdepay"),
+        new_element("tsparse", { "set-timestamps": True } ),
+        demux
+    ])
 
     pipeline.set_state(Gst.State.PLAYING)
 
