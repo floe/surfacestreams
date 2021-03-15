@@ -210,10 +210,10 @@ void buffer_destroy(gpointer data) {
   delete done;
 }
 
-void Camera::prepare_buffer(cv::Mat* input, int format) {
+void Camera::send_buffer() {
 
-  Mat* output = new Mat(th,tw,format);
-  warpPerspective(*input,*output,pm,output->size(),INTER_NEAREST);
+  Mat* output = new Mat(th,tw,input.type());
+  warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
   guint size = output->total()*output->elemSize();
   gpointer data = output->data;
@@ -235,5 +235,8 @@ void Camera::gstreamer_cleanup() {
   gst_object_unref (GST_OBJECT (gpipeline));
 }
 
-void Camera::process_frames(cv::Mat* color, cv::Mat* depth) {
+void Camera::retrieve_frames() {
+}
+
+void Camera::remove_background() {
 }

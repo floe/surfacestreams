@@ -12,16 +12,19 @@ class Camera {
 
 		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0);
 
-		void process_frames(cv::Mat* color, cv::Mat* depth = nullptr);
-		void prepare_buffer(cv::Mat* input, int format);
+		void retrieve_frames();
+		void remove_background();
+		void send_buffer();
+		//void prepare_buffer(cv::Mat* input, int format);
 
 		void push_point(float x, float y);
 		void handle_key(const char* key);
 		bool do_quit;
 
-	private:
+	protected:
 
 		int dw, dh, cw, ch;
+		cv::Mat input;
 
 		PlaneModel<float> plane;
 		void ransac_plane();

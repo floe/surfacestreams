@@ -12,7 +12,7 @@ all: ${TARGETS}
 webcam_sur40.o: webcam.cpp
 	g++ -c -o $@ $< -DSUR40=SUR40 ${CCFLAGS} 
 
-webcam: webcam.o Camera.o
+webcam: webcam.o Camera.o V4L2.o
 	g++ -o $@ $^ ${LDFLAGS}
 
 sur40: webcam_sur40.o Camera.o SUR40.o

@@ -1,9 +1,8 @@
 #include <unistd.h>
 #include <iostream>
 
-#include "Camera.h"
+#include "V4L2.h"
 #include "SUR40.h"
-#include <opencv2/videoio.hpp>
 
 #define IN_W 1280
 #define IN_H  720
@@ -24,28 +23,18 @@ int main(int argc, char* argv[]) {
   if (argc > 2) gstpipe = argv[2];
 
   #ifndef SUR40
-  Camera cam(gstpipe,"BGR",IN_W,IN_H);
+  V4L2 cam(gstpipe,get_v4l_devnum(argv[1]));
   #else
   SUR40 cam(gstpipe);
   #endif
 
-  cv::VideoCapture cap(get_v4l_devnum(argv[1]),cv::CAP_V4L2);
-  if (!cap.isOpened())  // check if succeeded to connect to the camera
-    return 1;
-
-  cap.set(cv::CAP_PROP_FRAME_WIDTH,IN_W);
-  cap.set(cv::CAP_PROP_FRAME_HEIGHT,IN_H);
-  cap.set(cv::CAP_PROP_FPS,IN_F);
-  cap.set(cv::CAP_PROP_FOURCC,cv::VideoWriter::fourcc('M','J','P','G'));
-
   while (!cam.do_quit) {
 
-    cv::Mat input;
-    cap >> input;
+    cam.retrieve_frames();
 
-    cam.process_frames(&input);
+    cam.remove_background();
 
-    cam.prepare_buffer(&input,input.type());
+    cam.send_buffer();
   }
 
   return 0;
