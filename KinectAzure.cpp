@@ -50,6 +50,8 @@ void KinectAzure::retrieve_frames() {
 
 void KinectAzure::remove_background() {
 
+	if (depthImage.handle() == nullptr) return;
+
 			// in the original depth image, zero all pixels with invalid data or below the plane
 			uint16_t* depthData = (uint16_t*)depthImage.get_buffer();
 			for (int y = 0; y < dh; ++y) {

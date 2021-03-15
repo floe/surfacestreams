@@ -212,6 +212,8 @@ void buffer_destroy(gpointer data) {
 
 void Camera::send_buffer() {
 
+  if (input.total() == 0) return;
+
   Mat* output = new Mat(th,tw,input.type());
   warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
