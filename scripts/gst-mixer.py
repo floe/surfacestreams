@@ -85,13 +85,13 @@ def on_ssrc_pad(src, pad, *user_data):
     # TODO: somehow figure out the peer address from ssrc and/or buffer metadata
 
     if name.startswith("rtcp"):
+        add_and_link([ src, new_element("fakesink", { "async": False } ) ])
         return
 
     tsdemux = new_element("tsdemux")
     tsdemux.connect("pad-added",on_pad_added)
 
-    add_and_link([
-        src,
+    add_and_link([ src,
         new_element("rtpjitterbuffer", { "do-lost": True } ),
         new_element("rtpmp2tdepay"),
         new_element("tsparse", { "set-timestamps": True } ),
