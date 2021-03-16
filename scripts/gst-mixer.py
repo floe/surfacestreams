@@ -12,12 +12,14 @@ from gi.repository import Gst, GstBase, GLib
 
 pipeline = None
 
+# conveniently create a new GStreamer element and set parameters
 def new_element(element_name,parameters={}):
     element = Gst.ElementFactory.make(element_name)
     for key,val in parameters.items():
         element.set_property(key,val)
     return element
 
+# add a list of elements to the pipeline and link them in sequence
 def add_and_link(elements):
     prev = None
     for item in elements:
@@ -27,9 +29,10 @@ def add_and_link(elements):
             prev.link(item)
         prev = item
 
+# capture and handle bus messages
 def bus_call(bus, message, loop):
     t = message.type
-    print(message.src,t)
+    #print(message.src,t)
     if t == Gst.MessageType.EOS:
         print("End-of-stream")
         loop.quit()
@@ -39,10 +42,13 @@ def bus_call(bus, message, loop):
         loop.quit()
     return True
 
+# a TS demuxer pad has been added
 def on_pad_added(src, pad, *user_data):
-    # Create the rest of your pipeline here and link it 
+
     name = pad.get_name()
     print("tsdemux pad added: "+name)
+
+    # TODO: instead of the fpsdisplaysink, connect a mixer
 
     if name.startswith("video"):
 
@@ -67,13 +73,19 @@ def on_pad_added(src, pad, *user_data):
             new_element("autoaudiosink")
         ])
 
-    pipeline.set_state(Gst.State.PLAYING)
-    #Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
+    #pipeline.set_state(Gst.State.PLAYING)
+    Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
 
+# new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
 
     name = pad.get_name()
     print("ssrc pad added: "+name)
+
+    # TODO: somehow figure out the peer address from ssrc and/or buffer metadata
+
+    if name.startswith("rtcp"):
+        return
 
     tsdemux = new_element("tsdemux")
     tsdemux.connect("pad-added",on_pad_added)
@@ -85,6 +97,11 @@ def on_ssrc_pad(src, pad, *user_data):
         new_element("tsparse", { "set-timestamps": True } ),
         tsdemux
     ])
+
+# pad probe for reading metadata
+#def probe_callback(pad,info,pdata):
+#    print(info.get_buffer())
+#    return Gst.PadProbeReturn.OK
 
 def main(args):
 
@@ -99,8 +116,12 @@ def main(args):
     rtpdemux = new_element("rtpssrcdemux")
     rtpdemux.connect("pad-added",on_ssrc_pad)
 
+    #udpsrc = new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } )
+    #srcpad = udpsrc.get_static_pad("src")
+    #srcpad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
+
     add_and_link([
-        new_element("udpsrc", { "port": 5000 } ),
+        new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } ),
         new_element("capsfilter", { "caps": caps } ),
         rtpdemux
     ])
