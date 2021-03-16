@@ -42,7 +42,7 @@ def bus_call(bus, message, loop):
 def on_pad_added(src, pad, *user_data):
     # Create the rest of your pipeline here and link it 
     name = pad.get_name()
-    print("pad_added: "+name)
+    print("tsdemux pad added: "+name)
 
     if name.startswith("video"):
 
@@ -70,6 +70,21 @@ def on_pad_added(src, pad, *user_data):
     pipeline.set_state(Gst.State.PLAYING)
     #Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
 
+def on_ssrc_pad(src, pad, *user_data):
+
+    name = pad.get_name()
+    print("ssrc pad added: "+name)
+
+    tsdemux = new_element("tsdemux")
+    tsdemux.connect("pad-added",on_pad_added)
+
+    add_and_link([
+        src,
+        new_element("rtpjitterbuffer", { "do-lost": True } ),
+        new_element("rtpmp2tdepay"),
+        new_element("tsparse", { "set-timestamps": True } ),
+        tsdemux
+    ])
 
 def main(args):
 
@@ -81,16 +96,13 @@ def main(args):
 
     caps = Gst.Caps.from_string("application/x-rtp,media=video,clock-rate=90000,encoding-name=MP2T")
 
-    demux = new_element("tsdemux")
-    demux.connect("pad-added",on_pad_added)
+    rtpdemux = new_element("rtpssrcdemux")
+    rtpdemux.connect("pad-added",on_ssrc_pad)
 
     add_and_link([
         new_element("udpsrc", { "port": 5000 } ),
         new_element("capsfilter", { "caps": caps } ),
-        new_element("rtpjitterbuffer", { "do-lost": True } ),
-        new_element("rtpmp2tdepay"),
-        new_element("tsparse", { "set-timestamps": True } ),
-        demux
+        rtpdemux
     ])
 
     pipeline.set_state(Gst.State.PLAYING)
