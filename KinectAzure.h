@@ -13,10 +13,10 @@ class KinectAzure: public Camera {
 		void retrieve_frames();
 		void remove_background();
 		void get_3d_pt(int x, int y, float* out);
+		void blank_depth(int ystart, int yend);
 
 	private:
 
-		void blank_depth();
 		void map_to_color();
 
 		k4a::device dev;

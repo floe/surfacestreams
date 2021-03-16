@@ -48,26 +48,41 @@ void KinectAzure::retrieve_frames() {
 	}
 }
 
+typedef struct {
+	KinectAzure* obj;
+	int start,end;
+} thread_info;
+
+void* thread_helper(void* arg) {
+	thread_info* ti = (thread_info*)arg;
+	ti->obj->blank_depth(ti->start,ti->end);
+	return nullptr;
+}
+
 void KinectAzure::remove_background() {
 
 	if (depthImage.handle() == nullptr) return;
 
-	blank_depth();
+	thread_info ti = { this, 0, dh/2 };
+	pthread_t thread;
+	pthread_create(&thread,nullptr,&thread_helper,(void*)&ti);
+	blank_depth(dh/2+1,dh);
+	pthread_join(thread,nullptr);
 	map_to_color();
 
 }
 
-void KinectAzure::blank_depth() {
+void KinectAzure::blank_depth(int ystart, int yend) {
 
 			// FIXME: this function eats up an inordinate amount of processing time, parallelize?
-			int index = 0;
+			int index = ystart*dw;
 			uint16_t dv = 0;
 			float out[3];
 			k4a_float2_t pt;
 
 			// in the original depth image, zero all pixels with invalid data or below the plane
 			uint16_t* depthData = (uint16_t*)depthImage.get_buffer();
-			for (int y = 0; y < dh; ++y) {
+			for (int y = ystart; y < yend; ++y) {
 				for (int x = 0; x < dw; ++x) {
 
 					dv = depthData[index];
