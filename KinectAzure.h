@@ -16,6 +16,9 @@ class KinectAzure: public Camera {
 
 	private:
 
+		void blank_depth();
+		void map_to_color();
+
 		k4a::device dev;
 
 		k4a::calibration calibration;

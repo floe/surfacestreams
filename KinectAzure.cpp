@@ -52,25 +52,43 @@ void KinectAzure::remove_background() {
 
 	if (depthImage.handle() == nullptr) return;
 
+	blank_depth();
+	map_to_color();
+
+}
+
+void KinectAzure::blank_depth() {
+
+			// FIXME: this function eats up an inordinate amount of processing time, parallelize?
+			int index = 0;
+			uint16_t dv = 0;
+			float out[3];
+			k4a_float2_t pt;
+
 			// in the original depth image, zero all pixels with invalid data or below the plane
 			uint16_t* depthData = (uint16_t*)depthImage.get_buffer();
 			for (int y = 0; y < dh; ++y) {
 				for (int x = 0; x < dw; ++x) {
 
-					int index = y*dw+x;
-					k4a_float2_t pt; pt.xy.x = (float)x; pt.xy.y = (float)y;
-					uint16_t dv = depthData[index];
-					if (dv == 0) continue;
-					float depth = (float)dv;
-					float out[3];
+					dv = depthData[index];
+					if (dv == 0) { index += 1; continue; }
 
-					bool res = calibration.convert_2d_to_3d( pt, depth, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_COLOR, (k4a_float3_t*)out );
+					pt.xy.x = (float)x;
+					pt.xy.y = (float)y;
+
+					bool res = calibration.convert_2d_to_3d( pt, (float)dv, K4A_CALIBRATION_TYPE_DEPTH, K4A_CALIBRATION_TYPE_COLOR, (k4a_float3_t*)out );
+					if (!res) { index += 1; continue; }
+
 					Eigen::Vector3f point = { out[0], out[1], out[2] };
-
-					if ((!res) || ((plane.n.dot(point) - plane.d) > -distance*10))
+					if ((plane.n.dot(point) - plane.d) > -distance*10)
 						depthData[index] = 0;
+
+					index += 1;
 				}
 			}
+}
+
+void KinectAzure::map_to_color() {
 
 			k4a::image transformed_depth_image = transformation.depth_image_to_color_camera(depthImage);
 
@@ -81,20 +99,14 @@ void KinectAzure::remove_background() {
 			assert(height == ch);
 
 			uint32_t* buffer = (uint32_t*)colorImage.get_buffer();
-			depthData = (uint16_t*)transformed_depth_image.get_buffer();
-			if (do_filter)
-			for (int y = 0; y < height; ++y) {
-				for (int x = 0; x < width; ++x) {
-
-					int index = y*cw+x;
+			uint16_t* depthData = (uint16_t*)transformed_depth_image.get_buffer();
+			if (do_filter) {
+				for (int index = 0; index < cw*ch; index++) {
 					uint16_t dv = depthData[index];
-
 					if (dv == 0) 
 						buffer[index] = 0x0000FF00;
 				}
 			}
 
 			input = cv::Mat(colorImage.get_height_pixels(),colorImage.get_width_pixels(),CV_8UC4,(uint8_t*)colorImage.get_buffer());
-
-			//prepare_buffer(&input,1280,720,CV_8UC4);
 }
