@@ -11,10 +11,16 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gst, GstBase, GLib
 
 pipeline = None
+sources = []
+stream = {
+    "video_0_0041": "surface",
+    "video_0_0042": "front",
+    "audio_0_0043": "audio"
+}
 
 # conveniently create a new GStreamer element and set parameters
-def new_element(element_name,parameters={}):
-    element = Gst.ElementFactory.make(element_name)
+def new_element(element_name,parameters={},myname=None):
+    element = Gst.ElementFactory.make(element_name,myname)
     for key,val in parameters.items():
         element.set_property(key,val)
     return element
@@ -54,11 +60,16 @@ def on_pad_added(src, pad, *user_data):
 
         print("adding video subqueue")
 
+        # FIXME: using the last/most recent src_id is a hack and will only work if clients do not connect at the same time
+        teename = sources[-1]+"_"+stream[name]
+
         add_and_link([ src,
             new_element("h264parse"),
             new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
             new_element("videoconvert"),
+            new_element("textoverlay",{ "text": teename, "valignment": "top" }),
+            new_element("tee",myname=teename),
             new_element("fpsdisplaysink")
         ])
 
@@ -79,14 +90,20 @@ def on_pad_added(src, pad, *user_data):
 # new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
 
+    global sources
+
     name = pad.get_name()
     print("ssrc pad added: "+name)
 
     # TODO: somehow figure out the peer address from ssrc and/or buffer metadata
 
     if name.startswith("rtcp"):
+        # FIXME: why does this need a) a fakesink, and b) async=false?
+        # proper solution would probably be to link the rtcp_src pad to jitterbuffer
         add_and_link([ src, new_element("fakesink", { "async": False } ) ])
         return
+
+    sources.append(name)
 
     tsdemux = new_element("tsdemux")
     tsdemux.connect("pad-added",on_pad_added)
