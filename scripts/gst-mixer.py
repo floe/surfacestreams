@@ -75,6 +75,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             new_element("alpha", { "method": "green" } ),
             new_element("tee",myname=teename),
+            new_element("queue"),
             new_element("videoconvert"),
             new_element("fpsdisplaysink")
         ])
@@ -89,6 +90,27 @@ def on_pad_added(src, pad, *user_data):
             new_element("opusdec", { "plc": True } ),
             new_element("autoaudiosink")
         ])
+
+        # do we have at least two surface streams?
+        if len(surfaces) > 1:
+            print("linking tees to mixer")
+            tee1 = pipeline.get_by_name(surfaces[0])
+            tee2 = pipeline.get_by_name(surfaces[1])
+            #teepad1 = tee1.request_pad(tee1.get_pad_template("src_%u"), None, None)
+            #teepad2 = tee2.request_pad(tee2.get_pad_template("src_%u"), None, None)
+            mixer = new_element("videomixer")
+            queue1 = new_element("queue")
+            queue2 = new_element("queue")
+            add_and_link([ mixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+            add_and_link([ queue1 ])
+            add_and_link([ queue2 ])
+            #mixtemp = mixer.get_pad_template("sink_%u")
+            #mixpad1 = mixer.request_pad(mixtemp, None, None)
+            #mixpad2 = mixer.request_pad(mixtemp, None, None)
+            tee1.link(queue1)
+            tee2.link(queue2)
+            queue1.link(mixer)
+            queue2.link(mixer)
 
     #pipeline.set_state(Gst.State.PLAYING)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
