@@ -12,6 +12,7 @@ from gi.repository import Gst, GstBase, GLib
 
 pipeline = None
 sources = []
+surfaces = []
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
@@ -29,7 +30,8 @@ def new_element(element_name,parameters={},myname=None):
 def add_and_link(elements):
     prev = None
     for item in elements:
-        pipeline.add(item)
+        if pipeline.get_by_name(item.name) == None:
+            pipeline.add(item)
         item.sync_state_with_parent()
         if prev != None:
             prev.link(item)
@@ -63,13 +65,17 @@ def on_pad_added(src, pad, *user_data):
         # FIXME: using the last/most recent src_id is a hack and will only work if clients do not connect at the same time
         teename = sources[-1]+"_"+stream[name]
 
+        if stream[name] == "surface":
+            surfaces.append(teename)
+
         add_and_link([ src,
             new_element("h264parse"),
             new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
-            new_element("videoconvert"),
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
+            new_element("alpha", { "method": "green" } ),
             new_element("tee",myname=teename),
+            new_element("videoconvert"),
             new_element("fpsdisplaysink")
         ])
 
