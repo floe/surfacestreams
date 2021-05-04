@@ -11,7 +11,7 @@ gi.require_version('GLib', '2.0')
 from gi.repository import Gst, GstBase, GLib
 
 pipeline = None
-sources = []
+sources = {}
 surfaces = []
 stream = {
     "video_0_0041": "surface",
@@ -56,14 +56,13 @@ def on_pad_added(src, pad, *user_data):
     name = pad.get_name()
     print("tsdemux pad added: "+name)
 
-    # TODO: instead of the fpsdisplaysink, connect a mixer
-
     if name.startswith("video"):
 
         print("adding video subqueue")
 
-        # FIXME: using the last/most recent src_id is a hack and will only work if clients do not connect at the same time
-        teename = sources[-1]+"_"+stream[name]
+        # find corresponding ssrc for the active demuxer
+        elname = pad.get_parent_element().get_name()
+        teename = sources[elname]+"_"+stream[name]
 
         if stream[name] == "surface":
             surfaces.append(teename)
@@ -75,6 +74,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             new_element("alpha", { "method": "green" } ),
             new_element("tee",{"allow-not-linked":True},myname=teename),
+            # uncomment for debug view of individual streams
             #new_element("queue"),
             #new_element("videoconvert"),
             #new_element("fpsdisplaysink",{"sync":False})
@@ -94,15 +94,10 @@ def on_pad_added(src, pad, *user_data):
         # do we have at least two surface streams?
         if len(surfaces) > 1:
             print("linking tees to mixer")
-            #teepad1 = tee1.request_pad(tee1.get_pad_template("src_%u"), None, None)
-            #teepad2 = tee2.request_pad(tee2.get_pad_template("src_%u"), None, None)
             mixer = new_element("videomixer")
             add_and_link([ mixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
             add_and_link([ pipeline.get_by_name(surfaces[0]), new_element("queue"), mixer ])
             add_and_link([ pipeline.get_by_name(surfaces[1]), new_element("queue"), mixer ])
-            #mixtemp = mixer.get_pad_template("sink_%u")
-            #mixpad1 = mixer.request_pad(mixtemp, None, None)
-            #mixpad2 = mixer.request_pad(mixtemp, None, None)
 
     #pipeline.set_state(Gst.State.PLAYING)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
@@ -126,8 +121,6 @@ def on_ssrc_pad(src, pad, *user_data):
         pad.link(sinkpad)
         return
 
-    sources.append("ssrc_"+ssrc)
-
     tsdemux = new_element("tsdemux")
     tsdemux.connect("pad-added",on_pad_added)
 
@@ -137,6 +130,9 @@ def on_ssrc_pad(src, pad, *user_data):
         new_element("tsparse", { "set-timestamps": True } ),
         tsdemux
     ])
+
+    # store mapping from demuxer to ssrc for correctly connecting video pads
+    sources[tsdemux.get_name()] = "ssrc_"+ssrc
 
 # pad probe for reading metadata
 #def probe_callback(pad,info,pdata):
