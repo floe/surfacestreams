@@ -130,6 +130,6 @@ target_link_libraries(SSKinect
 if(EXECUTE_TARGET)
     add_custom_command(TARGET SSKinect
         POST_BUILD
-        COMMAND ./build/bin/SSKinect
+        COMMAND ./build/bin/SSKinect --logtostderr=1
         WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 endif()
