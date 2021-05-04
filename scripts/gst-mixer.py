@@ -113,23 +113,26 @@ def on_ssrc_pad(src, pad, *user_data):
     global sources
 
     name = pad.get_name()
+    ssrc = name.split("_")[-1]
+    jbname = "rtpjb_"+ssrc
     print("ssrc pad added: "+name)
 
     # TODO: somehow figure out the peer address from ssrc and/or buffer metadata
 
     if name.startswith("rtcp"):
-        # FIXME: why does this need a) a fakesink, and b) async=false?
-        # proper solution would probably be to link the rtcp_src pad to jitterbuffer
-        add_and_link([ src, new_element("fakesink", { "async": False } ) ])
+        # link the rtcp_src pad to jitterbuffer
+        jb = pipeline.get_by_name(jbname)
+        sinkpad = jb.request_pad(jb.get_pad_template("sink_rtcp"), None, None)
+        pad.link(sinkpad)
         return
 
-    sources.append(name)
+    sources.append(ssrc)
 
     tsdemux = new_element("tsdemux")
     tsdemux.connect("pad-added",on_pad_added)
 
     add_and_link([ src,
-        new_element("rtpjitterbuffer", { "do-lost": True } ),
+        new_element("rtpjitterbuffer", { "do-lost": True }, jbname ),
         new_element("rtpmp2tdepay"),
         new_element("tsparse", { "set-timestamps": True } ),
         tsdemux
