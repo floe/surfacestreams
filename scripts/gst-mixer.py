@@ -127,13 +127,12 @@ def on_ssrc_pad(src, pad, *user_data):
     # store mapping from demuxer to ssrc for correctly connecting video pads
     sources[tsdemux.get_name()] = "ssrc_"+ssrc
 
-# pad probe for reading metadata
+# pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
     buf = info.get_buffer()
-    foo = buf.get_meta(GstNet.net_address_meta_api_get_type())
-    # FIXME: still not working, info always == None
-    info = foo.get_info("addr")
-    print(info)
+    foo = GstNet.buffer_get_net_address_meta(buf)
+    #print(foo.addr.get_address().to_string())
+    #print(foo.addr.get_port())
     return Gst.PadProbeReturn.OK
 
 def main(args):
@@ -146,21 +145,22 @@ def main(args):
 
     caps = Gst.Caps.from_string("application/x-rtp,media=video,clock-rate=90000,encoding-name=MP2T")
 
+    # setup demuxer with callback for new ssrc
     rtpdemux = new_element("rtpssrcdemux")
     rtpdemux.connect("pad-added",on_ssrc_pad)
 
-    #udpsrc = new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } )
-    #srcpad = udpsrc.get_static_pad("src")
-    #srcpad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
+    # setup udp src with pad probe to retrieve address metadata
+    udpsrc = new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } )
+    srcpad = udpsrc.get_static_pad("src")
+    srcpad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
-    add_and_link([
-        new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } ),
-        new_element("capsfilter", { "caps": caps } ),
-        rtpdemux
-    ])
+    # initial pipeline: udpsrc -> caps -> rtpdemux
+    add_and_link([ udpsrc, new_element("capsfilter", { "caps": caps } ), rtpdemux ])
 
+    # videomixer pipeline (not yet connected)
     add_and_link([ new_element("videomixer"), new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
+    # kick things off
     pipeline.set_state(Gst.State.PLAYING)
 
     loop = GLib.MainLoop()
