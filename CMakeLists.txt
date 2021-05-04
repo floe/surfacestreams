@@ -101,6 +101,7 @@ add_executable(SSKinect
     #${PROJECT_DIR}/realsense.cpp
     ${PROJECT_DIR}/Camera.cpp
     ${PROJECT_DIR}/Camera.cpp
+    ${PROJECT_DIR}/timer.cpp
     )
 
 # set-up target include directories
