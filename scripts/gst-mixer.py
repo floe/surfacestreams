@@ -12,7 +12,6 @@ from gi.repository import Gst, GstBase, GLib
 
 pipeline = None
 sources = {}
-surfaces = []
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
@@ -64,9 +63,6 @@ def on_pad_added(src, pad, *user_data):
         elname = pad.get_parent_element().get_name()
         teename = sources[elname]+"_"+stream[name]
 
-        if stream[name] == "surface":
-            surfaces.append(teename)
-
         add_and_link([ src,
             new_element("h264parse"),
             new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
@@ -80,6 +76,10 @@ def on_pad_added(src, pad, *user_data):
             #new_element("fpsdisplaysink",{"sync":False})
         ])
 
+        if stream[name] == "surface":
+            # FIXME: hardcoded mixer name
+            add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("videomixer2-0") ])
+
     if name.startswith("audio"):
 
         print("adding audio subqueue")
@@ -90,14 +90,6 @@ def on_pad_added(src, pad, *user_data):
             new_element("opusdec", { "plc": True } ),
             new_element("autoaudiosink")
         ])
-
-        # do we have at least two surface streams?
-        if len(surfaces) > 1:
-            print("linking tees to mixer")
-            mixer = new_element("videomixer")
-            add_and_link([ mixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
-            add_and_link([ pipeline.get_by_name(surfaces[0]), new_element("queue"), mixer ])
-            add_and_link([ pipeline.get_by_name(surfaces[1]), new_element("queue"), mixer ])
 
     #pipeline.set_state(Gst.State.PLAYING)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
@@ -161,6 +153,8 @@ def main(args):
         new_element("capsfilter", { "caps": caps } ),
         rtpdemux
     ])
+
+    add_and_link([ new_element("videomixer"), new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
     pipeline.set_state(Gst.State.PLAYING)
 
