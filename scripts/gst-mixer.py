@@ -74,10 +74,10 @@ def on_pad_added(src, pad, *user_data):
             new_element("avdec_h264"),
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             new_element("alpha", { "method": "green" } ),
-            new_element("tee",myname=teename),
-            new_element("queue"),
-            new_element("videoconvert"),
-            new_element("fpsdisplaysink")
+            new_element("tee",{"allow-not-linked":True},myname=teename),
+            #new_element("queue"),
+            #new_element("videoconvert"),
+            #new_element("fpsdisplaysink",{"sync":False})
         ])
 
     if name.startswith("audio"):
