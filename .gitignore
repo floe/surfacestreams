@@ -40,3 +40,14 @@ k4a
 perspective.xml
 imgui.ini
 .~lock.*
+
+# CMake
+build/
+cmake-build-debug/
+
+# Logs
+*.log
+
+
+# CLion
+.idea/
