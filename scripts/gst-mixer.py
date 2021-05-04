@@ -7,8 +7,9 @@
 import sys,gi
 gi.require_version('Gst', '1.0')
 gi.require_version('GstBase', '1.0')
+gi.require_version('GstNet', '1.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import Gst, GstBase, GLib
+from gi.repository import Gst, GstBase, GstNet, GLib
 
 pipeline = None
 sources = {}
@@ -127,9 +128,13 @@ def on_ssrc_pad(src, pad, *user_data):
     sources[tsdemux.get_name()] = "ssrc_"+ssrc
 
 # pad probe for reading metadata
-#def probe_callback(pad,info,pdata):
-#    print(info.get_buffer())
-#    return Gst.PadProbeReturn.OK
+def probe_callback(pad,info,pdata):
+    buf = info.get_buffer()
+    foo = buf.get_meta(GstNet.net_address_meta_api_get_type())
+    # FIXME: still not working, info always == None
+    info = foo.get_info("addr")
+    print(info)
+    return Gst.PadProbeReturn.OK
 
 def main(args):
 
