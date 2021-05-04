@@ -126,7 +126,7 @@ def on_ssrc_pad(src, pad, *user_data):
         pad.link(sinkpad)
         return
 
-    sources.append(ssrc)
+    sources.append("ssrc_"+ssrc)
 
     tsdemux = new_element("tsdemux")
     tsdemux.connect("pad-added",on_pad_added)
