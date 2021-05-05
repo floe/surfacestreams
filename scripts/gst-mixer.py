@@ -11,8 +11,14 @@ gi.require_version('GstNet', '1.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gst, GstBase, GstNet, GLib
 
+# collection of all data for one client
+class Client:
+    def __init__(self):
+        self.ip = ""
+        self.tee = None
+        self.mixer = None
+
 pipeline = None
-sources = {}
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
@@ -61,8 +67,8 @@ def on_pad_added(src, pad, *user_data):
         print("adding video subqueue")
 
         # find corresponding ssrc for the active demuxer
-        elname = pad.get_parent_element().get_name()
-        teename = sources[elname]+"_"+stream[name]
+        ssrc = src.get_name().split("_")[-1]
+        teename = "tee_"+ssrc+"_"+stream[name]
 
         add_and_link([ src,
             new_element("h264parse"),
@@ -79,7 +85,9 @@ def on_pad_added(src, pad, *user_data):
 
         if stream[name] == "surface":
             # FIXME: hardcoded mixer name
-            add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("videomixer2-0") ])
+            add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("mixer_"+ssrc) ])
+            # TODO: for every _other_ mixer, link my tee to that mixer
+            # TODO: for every _other_ tee, link that tee to my mixer
 
     if name.startswith("audio"):
 
@@ -98,8 +106,6 @@ def on_pad_added(src, pad, *user_data):
 # new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
 
-    global sources
-
     name = pad.get_name()
     ssrc = name.split("_")[-1]
     jbname = "rtpjb_"+ssrc
@@ -114,7 +120,7 @@ def on_ssrc_pad(src, pad, *user_data):
         pad.link(sinkpad)
         return
 
-    tsdemux = new_element("tsdemux")
+    tsdemux = new_element("tsdemux",myname="tsd_"+ssrc)
     tsdemux.connect("pad-added",on_pad_added)
 
     add_and_link([ src,
@@ -124,15 +130,14 @@ def on_ssrc_pad(src, pad, *user_data):
         tsdemux
     ])
 
-    # store mapping from demuxer to ssrc for correctly connecting video pads
-    sources[tsdemux.get_name()] = "ssrc_"+ssrc
+    # videomixer pipeline (not yet connected)
+    add_and_link([ new_element("videomixer",myname="mixer_"+ssrc), new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
 # pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
     buf = info.get_buffer()
     foo = GstNet.buffer_get_net_address_meta(buf)
-    #print(foo.addr.get_address().to_string())
-    #print(foo.addr.get_port())
+    client = foo.addr.get_address().to_string()+":"+str(foo.addr.get_port())
     return Gst.PadProbeReturn.OK
 
 def main(args):
@@ -156,9 +161,6 @@ def main(args):
 
     # initial pipeline: udpsrc -> caps -> rtpdemux
     add_and_link([ udpsrc, new_element("capsfilter", { "caps": caps } ), rtpdemux ])
-
-    # videomixer pipeline (not yet connected)
-    add_and_link([ new_element("videomixer"), new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
     # kick things off
     pipeline.set_state(Gst.State.PLAYING)
