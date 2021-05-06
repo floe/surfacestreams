@@ -170,13 +170,10 @@ def on_ssrc_pad(src, pad, *user_data):
     ])
 
     # store client metadata
-    client = Client()
-    #client.mixer = mymixer
-    clients[ssrc] = client
+    clients[ssrc] = Client()
 
 # pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
-    global clients
     buf = info.get_buffer()
     foo = GstNet.buffer_get_net_address_meta(buf)
     addr = foo.addr.get_address().to_string() #+":"+str(foo.addr.get_port())
