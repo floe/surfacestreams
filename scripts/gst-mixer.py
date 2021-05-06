@@ -17,9 +17,11 @@ class Client:
         self.ip = ""
         self.tee = None
         self.mixer = None
+    def __str__(self):
+        return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
 
 pipeline = None
-clients = [ ]
+clients = { }
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
@@ -88,6 +90,7 @@ def on_pad_added(src, pad, *user_data):
             add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("mixer_"+ssrc) ])
             # TODO: for every _other_ mixer, link my tee to that mixer
             # TODO: for every _other_ tee, link that tee to my mixer
+            print(clients[ssrc])
 
         elif stream[name] == "front":
             # TODO: implement the same for front cam streams
@@ -111,13 +114,12 @@ def on_pad_added(src, pad, *user_data):
 # new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
 
+    global clients
+
     name = pad.get_name()
     ssrc = name.split("_")[-1]
     jbname = "rtpjb_"+ssrc
     print("ssrc pad added: "+name)
-
-    # TODO: somehow figure out the peer address from ssrc and/or buffer metadata
-    pad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
     if name.startswith("rtcp"):
         # link the rtcp_src pad to jitterbuffer
@@ -125,6 +127,9 @@ def on_ssrc_pad(src, pad, *user_data):
         sinkpad = jb.request_pad(jb.get_pad_template("sink_rtcp"), None, None)
         pad.link(sinkpad)
         return
+
+    # add pad probe for buffer metadata (which contains sender IP address)
+    pad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
     tsdemux = new_element("tsdemux",myname="tsd_"+ssrc)
     tsdemux.connect("pad-added",on_pad_added)
@@ -137,14 +142,24 @@ def on_ssrc_pad(src, pad, *user_data):
     ])
 
     # videomixer pipeline (not yet connected)
-    add_and_link([ new_element("videomixer",myname="mixer_"+ssrc), new_element("videoconvert"), new_element("fpsdisplaysink") ])
+    # TODO: add encoders instead of displaysink
+    mymixer = new_element("videomixer",myname="mixer_"+ssrc)
+    add_and_link([ mymixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+
+    # store client metadata
+    client = Client()
+    client.mixer = mymixer
+    clients[ssrc] = client
 
 # pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
+    global clients
     buf = info.get_buffer()
     foo = GstNet.buffer_get_net_address_meta(buf)
-    client = foo.addr.get_address().to_string()+":"+str(foo.addr.get_port())
-    print(pad.get_name(),client)
+    addr = foo.addr.get_address().to_string() #+":"+str(foo.addr.get_port())
+    ssrc = pad.get_name().split("_")[-1]
+    if ssrc in clients:
+        clients[ssrc].ip = addr
     return Gst.PadProbeReturn.OK
 
 def main(args):
