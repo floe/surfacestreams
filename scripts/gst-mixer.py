@@ -17,7 +17,7 @@ class Client:
         self.ip = ""
         self.tee = None
         self.mixer = None
-    def __str__(self):
+    def __repr__(self):
         return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
 
 pipeline = None
@@ -88,13 +88,37 @@ def on_pad_added(src, pad, *user_data):
             #new_element("fpsdisplaysink",{"sync":False})
         ])
 
-        clients[ssrc].tee = mytee
-
         if stream[name] == "surface":
-            add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("mixer_"+ssrc) ])
-            # TODO: for every _other_ mixer, link my tee to that mixer
-            # TODO: for every _other_ tee, link that tee to my mixer
-            print(clients[ssrc])
+
+            clients[ssrc].tee = mytee
+
+            # create mixers where needed (but only if there are at least 2 clients)
+            if len(clients) > 1:
+                for c in clients:
+                    client = clients[c]
+                    if client.mixer != None:
+                        continue
+                    # TODO: add encoders instead of displaysink
+                    tmpmixer = new_element("videomixer",myname="mixer_"+c)
+                    add_and_link([ tmpmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+                    client.mixer = tmpmixer
+
+            # get mixer for own ssrc
+            mymixer = pipeline.get_by_name("mixer_"+ssrc)
+
+            for c in clients:
+
+                client = clients[c]
+                print(c,client)
+
+                if c == ssrc: # skip own ssrc
+                    continue
+                
+                # for every _other_ mixer, link my tee to that mixer
+                add_and_link([ mytee, new_element("queue"), client.mixer ])
+
+                # for every _other_ tee, link that tee to my mixer
+                add_and_link([ client.tee, new_element("queue"), mymixer ])
 
         elif stream[name] == "front":
             # TODO: implement the same for front cam streams
@@ -145,14 +169,9 @@ def on_ssrc_pad(src, pad, *user_data):
         tsdemux
     ])
 
-    # videomixer pipeline (not yet connected)
-    # TODO: add encoders instead of displaysink
-    mymixer = new_element("videomixer",myname="mixer_"+ssrc)
-    add_and_link([ mymixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
-
     # store client metadata
     client = Client()
-    client.mixer = mymixer
+    #client.mixer = mymixer
     clients[ssrc] = client
 
 # pad probe for reading address metadata
