@@ -73,18 +73,22 @@ def on_pad_added(src, pad, *user_data):
         ssrc = src.get_name().split("_")[-1]
         teename = "tee_"+ssrc+"_"+stream[name]
 
+        mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
+
         add_and_link([ src,
             new_element("h264parse"),
             new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             new_element("alpha", { "method": "green" } ),
-            new_element("tee",{"allow-not-linked":True},myname=teename),
+            mytee,
             # uncomment for debug view of individual streams
             #new_element("queue"),
             #new_element("videoconvert"),
             #new_element("fpsdisplaysink",{"sync":False})
         ])
+
+        clients[ssrc].tee = mytee
 
         if stream[name] == "surface":
             add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("mixer_"+ssrc) ])
@@ -108,7 +112,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("autoaudiosink")
         ])
 
-    #pipeline.set_state(Gst.State.PLAYING)
+    # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
 
 # new ssrc coming in on UDP socket, i.e. new client
