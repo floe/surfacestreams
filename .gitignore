@@ -37,6 +37,8 @@ kinect
 sur40
 k4a
 
+*.dot
+
 perspective.xml
 imgui.ini
 .~lock.*

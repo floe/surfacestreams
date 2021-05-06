@@ -19,6 +19,7 @@ class Client:
         self.mixer = None
 
 pipeline = None
+clients = [ ]
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
@@ -84,14 +85,18 @@ def on_pad_added(src, pad, *user_data):
         ])
 
         if stream[name] == "surface":
-            # FIXME: hardcoded mixer name
             add_and_link([ pipeline.get_by_name(teename), new_element("queue"), pipeline.get_by_name("mixer_"+ssrc) ])
             # TODO: for every _other_ mixer, link my tee to that mixer
             # TODO: for every _other_ tee, link that tee to my mixer
 
+        elif stream[name] == "front":
+            # TODO: implement the same for front cam streams
+            pass
+
     if name.startswith("audio"):
 
         print("adding audio subqueue")
+        # TODO: implement audio mixing
 
         add_and_link([ src,
             new_element("opusparse"),
@@ -112,6 +117,7 @@ def on_ssrc_pad(src, pad, *user_data):
     print("ssrc pad added: "+name)
 
     # TODO: somehow figure out the peer address from ssrc and/or buffer metadata
+    pad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
     if name.startswith("rtcp"):
         # link the rtcp_src pad to jitterbuffer
@@ -138,6 +144,7 @@ def probe_callback(pad,info,pdata):
     buf = info.get_buffer()
     foo = GstNet.buffer_get_net_address_meta(buf)
     client = foo.addr.get_address().to_string()+":"+str(foo.addr.get_port())
+    print(pad.get_name(),client)
     return Gst.PadProbeReturn.OK
 
 def main(args):
@@ -156,8 +163,6 @@ def main(args):
 
     # setup udp src with pad probe to retrieve address metadata
     udpsrc = new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } )
-    srcpad = udpsrc.get_static_pad("src")
-    srcpad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
     # initial pipeline: udpsrc -> caps -> rtpdemux
     add_and_link([ udpsrc, new_element("capsfilter", { "caps": caps } ), rtpdemux ])
