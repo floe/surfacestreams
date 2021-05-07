@@ -86,13 +86,16 @@ def on_pad_added(src, pad, *user_data):
 
         mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
+        alpha = None
+        if stream[name] == "surface":
+            alpha = new_element("alpha", { "method": "green" } )
+
         add_and_link([ src,
             new_element("h264parse"),
             new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
-            # TODO: alpha is only needed for surface streams
-            new_element("alpha", { "method": "green" } ),
+            alpha,
             mytee,
             # uncomment for debug view of individual streams
             #new_element("queue"),
@@ -120,12 +123,11 @@ def on_pad_added(src, pad, *user_data):
 
             for c in clients:
 
-                client = clients[c]
-                print(c,client)
-
                 if c == ssrc: # skip own ssrc
                     continue
-                
+
+                client = clients[c]
+
                 # for every _other_ mixer, link my tee to that mixer
                 add_and_link([ mytee, new_element("queue"), client.mixer ])
 
