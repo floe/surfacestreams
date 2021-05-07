@@ -21,12 +21,19 @@ class Client:
         return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
 
 pipeline = None
+frontmixer = None
 clients = { }
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
     "audio_0_0043": "audio"
 }
+offsets = [
+    (640,360),
+    (  0,  0),
+    (640,  0),
+    (  0,360)
+]
 
 # conveniently create a new GStreamer element and set parameters
 def new_element(element_name,parameters={},myname=None):
@@ -39,6 +46,8 @@ def new_element(element_name,parameters={},myname=None):
 def add_and_link(elements):
     prev = None
     for item in elements:
+        if item == None:
+            continue
         if pipeline.get_by_name(item.name) == None:
             pipeline.add(item)
         item.sync_state_with_parent()
@@ -62,6 +71,8 @@ def bus_call(bus, message, loop):
 # a TS demuxer pad has been added
 def on_pad_added(src, pad, *user_data):
 
+    global frontmixer
+
     name = pad.get_name()
     print("tsdemux pad added: "+name)
 
@@ -80,6 +91,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
+            # TODO: alpha is only needed for surface streams
             new_element("alpha", { "method": "green" } ),
             mytee,
             # uncomment for debug view of individual streams
@@ -121,8 +133,22 @@ def on_pad_added(src, pad, *user_data):
                 add_and_link([ client.tee, new_element("queue"), mymixer ])
 
         elif stream[name] == "front":
-            # TODO: implement the same for front cam streams
-            pass
+
+            # create single mixer for front stream
+            if frontmixer == None:
+                # TODO: add encoders instead of displaysink
+                frontmixer = new_element("videomixer",myname="frontmixer")
+                add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+
+            # request and link pads from tee and frontmixer
+            sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
+            srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
+            srcpad.link(sinkpad)
+
+            # set xpos/ypos properties on pad according to sequence number
+            padnum = int(sinkpad.get_name().split("_")[1])
+            sinkpad.set_property("xpos",offsets[padnum][0])
+            sinkpad.set_property("ypos",offsets[padnum][1])
 
     if name.startswith("audio"):
 
@@ -170,13 +196,10 @@ def on_ssrc_pad(src, pad, *user_data):
     ])
 
     # store client metadata
-    client = Client()
-    #client.mixer = mymixer
-    clients[ssrc] = client
+    clients[ssrc] = Client()
 
 # pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
-    global clients
     buf = info.get_buffer()
     foo = GstNet.buffer_get_net_address_meta(buf)
     addr = foo.addr.get_address().to_string() #+":"+str(foo.addr.get_port())
