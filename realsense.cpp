@@ -21,10 +21,10 @@ void get_3d_point(int x, int y, float* out) {
 void apply_to_color(rs2::depth_frame* depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame) {
 
   // blank out all remaining color pixels _below_ the plane
-  for (int y = 0; y < dh; y++) {
-    for (int x = 0; x < dw; x++) {
+  for (int y = 0; y < ch; y++) {
+    for (int x = 0; x < cw; x++) {
 
-      float pt[3]; float px[2] = { x, y };
+      float pt[3]; float px[2] = { (float)x, (float)y };
       rs2_deproject_pixel_to_point( pt, intr, px, depth->get_distance(x,y) );
       if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
       Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
@@ -50,12 +50,11 @@ int main(int argc, char* argv[]) {
   rs2::config cfg;
   rs2::colorizer color_map;
 
-  cfg.enable_stream(RS2_STREAM_DEPTH, 1280, 720, RS2_FORMAT_Z16, 30);
-  cfg.enable_stream(RS2_STREAM_COLOR, 1280, 720, RS2_FORMAT_RGBA8, 30);
+  cfg.enable_stream(RS2_STREAM_DEPTH, dw, dh, RS2_FORMAT_Z16, 30);
+  cfg.enable_stream(RS2_STREAM_COLOR, cw, ch, RS2_FORMAT_RGBA8, 30);
 
   // Configure and start the pipeline
   rs2::pipeline_profile profile = pipe.start( cfg );
-  float depth_scale = profile.get_device().first<rs2::depth_sensor>().get_depth_scale();
 
   // TODO: At the moment the SDK does not offer a closed enum for D400 visual presets
   // (because they keep changing)
@@ -105,32 +104,11 @@ int main(int argc, char* argv[]) {
     // Get the depth frame's dimensions
     int width = depth.get_width();
     int height = depth.get_height();
-    int other_bpp = color_frame.get_bytes_per_pixel();
 
-		float clipping_dist = 1.0;
-
-    const uint16_t* p_depth_frame = reinterpret_cast<const uint16_t*>(depth.get_data());
     uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
 		if (filter) apply_to_color(&depth,&intrinsics,distance,&plane,p_other_frame);
 
-/*
-    for (int y = 0; y < height; y++) {
-        auto depth_pixel_index = y * width;
-        for (int x = 0; x < width; x++, ++depth_pixel_index) {
-            // Get the depth value of the current pixel
-            auto pixels_distance = depth_scale * p_depth_frame[depth_pixel_index];
-
-            // Check if the depth value is invalid (<=0) or greater than the threashold
-            if (pixels_distance <= 0.f || pixels_distance > clipping_dist) {
-                // Calculate the offset in other frame's buffer to current pixel
-                auto offset = depth_pixel_index * other_bpp;
-                // Set pixel to "background" color (0x999999)
-                std::memset(&p_other_frame[offset], 0x99, other_bpp);
-            }
-        }
-		}
-*/
     // Query the distance from the camera to the object in the center of the image
     float dist_to_center = depth.get_distance(width / 2, height / 2);
     

@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# for sanity check, run:
+# ffplay -fflags nobuffer -flags low_delay -i rtp://127.0.0.1:5000/
+
 cd "$(dirname $0)"
 
 queue="queue max-size-time=200000000 leaky=downstream"
@@ -10,14 +13,19 @@ queue="queue max-size-time=200000000 leaky=downstream"
 	shift
 }
 
-videoenc1="videoconvert ! $queue ! x264enc noise-reduction=10000 tune=zerolatency byte-stream=true threads=2 key-int-max=15"
-videoenc2="videoconvert ! $queue ! vaapih264enc bitrate=2000 keyframe-period=10"
-audioenc0="$queue ! opusenc bitrate=8000"
+facesrc="videotestsrc is-live=true"
+[ "$1" = "-d" ] && {
+	facesrc="v4l2src device=$2"
+	shift ; shift
+}
 
-command="                                           ! video/x-raw,width=1280,height=720,framerate=10/1 ! $videoenc1 ! mux. \
-  v4l2src  do-timestamp=true device=/dev/video-surf ! video/x-raw,width=960,height=720,framerate=10/1  ! $videoenc2 ! mux. \
-  pulsesrc do-timestamp=true                        ! audio/x-raw,channels=1,rate=16000                ! $audioenc0 ! mux. \
-  mpegtsmux name=mux ! tee name=fork ! rtpmp2tpay ! udpsink host=$1 port=5000 $record"
+videoenc="videoconvert ! $queue ! x264enc noise-reduction=10000 speed-preset=ultrafast tune=zerolatency byte-stream=true threads=2 key-int-max=15 ! video/x-h264,profile=baseline"
+audioenc="$queue ! opusenc bitrate=16000"
 
-#gst-launch-1.0 -ve videotestsrc do-timestamp=true is-live=true $command
-../webcam /dev/video-surf "$command"
+command="                    ! videorate ! video/x-raw,width=1280,height=720,framerate=10/1 ! $videoenc ! mux. \
+  $facesrc do-timestamp=true ! videorate ! video/x-raw,width=640,height=480,framerate=10/1  ! $videoenc ! mux. \
+  pulsesrc do-timestamp=true ! audio/x-raw,channels=1,rate=16000                            ! $audioenc ! mux. \
+  mpegtsmux name=mux ! tee name=fork ! rtpmp2tpay ! udpsink host=${1:-127.0.0.1} port=5000 $record"
+
+gst-launch-1.0 -vtc videotestsrc do-timestamp=true is-live=true pattern=ball background-color=4278255360 $command
+#../webcam /dev/video-surf "$command"
