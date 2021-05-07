@@ -1,3 +1,6 @@
+# Logitech Quickcam Sphere
+KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0994", SYMLINK+="video-face"
+
 # Logitech C270
 KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", SYMLINK+="video-face"
 
