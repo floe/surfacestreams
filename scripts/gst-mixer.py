@@ -138,25 +138,17 @@ def on_pad_added(src, pad, *user_data):
             if frontmixer == None:
                 # TODO: add encoders instead of displaysink
                 frontmixer = new_element("videomixer",myname="frontmixer")
-                add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink",{"sync":False}) ])
+                add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
+            # request and link pads from tee and frontmixer
             sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
             srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
-
             srcpad.link(sinkpad)
 
-            padname,padnum = sinkpad.get_name().split("_")
-            padnum = int(padnum)
-
+            # set xpos/ypos properties on pad according to sequence number
+            padnum = int(sinkpad.get_name().split("_")[1])
             sinkpad.set_property("xpos",offsets[padnum][0])
             sinkpad.set_property("ypos",offsets[padnum][1])
-
-            #for sinkpad in frontmixer.pads:
-            #    print(sinkpad.get_name())
-            #    if not sinkpad.get_name().startswith("sink"):
-            #        continue
-            #    padname,padnum = sinkpad.get_name().split("_")
-            #    padnum = int(padnum)
 
     if name.startswith("audio"):
 
