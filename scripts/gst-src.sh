@@ -23,7 +23,7 @@ videoenc="videoconvert ! $queue ! x264enc noise-reduction=10000 speed-preset=ult
 audioenc="$queue ! opusenc bitrate=16000"
 
 command="                    ! videorate ! video/x-raw,width=1280,height=720,framerate=10/1 ! $videoenc ! mux. \
-  $facesrc do-timestamp=true ! videorate ! video/x-raw,width=640,height=480,framerate=10/1  ! $videoenc ! mux. \
+  $facesrc do-timestamp=true ! videorate ! video/x-raw,width=640,height=360,framerate=10/1  ! $videoenc ! mux. \
   pulsesrc do-timestamp=true ! audio/x-raw,channels=1,rate=16000                            ! $audioenc ! mux. \
   mpegtsmux name=mux ! tee name=fork ! rtpmp2tpay ! udpsink host=${1:-127.0.0.1} port=5000 $record"
 
