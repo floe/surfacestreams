@@ -142,9 +142,6 @@ def on_pad_added(src, pad, *user_data):
         # video streams are complete as well -> check mixer links in idle func
         new_client.append(ssrc)
 
-    # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
-    Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
-
 def mixer_check_cb(*user_data):
 
     global new_client
@@ -213,6 +210,9 @@ def mixer_check_cb(*user_data):
 
             # for every _other_ tee, link that tee to my mixer
             add_and_link([ other.surface_tee, new_element("queue"), newmixer ])
+
+        # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
+        Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
 
     return GLib.SOURCE_CONTINUE #REMOVE
 
