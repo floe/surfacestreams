@@ -176,7 +176,7 @@ def mixer_check_cb(*user_data):
         # link all not-linked clients to frontmixer
         for c in clients:
 
-            if clients[c].front_linked:
+            if clients[c].front_linked or clients[c].front_tee == None:
                 continue
 
             mytee = clients[c].front_tee
@@ -198,6 +198,8 @@ def mixer_check_cb(*user_data):
         newtee   = clients[ssrc].surface_tee # pipeline.get_by_name("tee_"+ssrc+"_surface")
 
         # link all other clients to new mixer, new client to other mixers
+        # FIXME for already-running sources, the links are duplicated?
+        # TODO keep track of which mixers have been linked in Client object
         for c in clients:
 
             if c == ssrc: # skip own ssrc
