@@ -154,11 +154,19 @@ def mixer_check_cb(*user_data):
 
         # create single mixer for front stream
         if frontmixer == None:
-            # TODO: add encoders instead of displaysink
             # TODO: add a tee behind the frontmixer
             # TODO: link tee and each individual mixer to mpegtsmux
             frontmixer = new_element("compositor",myname="frontmixer")
-            add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+            add_and_link([ frontmixer,
+                new_element("videoconvert"),
+                new_element("queue"),
+                #new_element("fpsdisplaysink")
+                new_element("x264enc",{"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}),
+                #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
+                new_element("mpegtsmux"),
+                new_element("rtpmp2tpay"),
+                new_element("udpsink",{"host":"127.0.0.1","port":5001})
+            ])
 
         # create surface mixers where needed (but only if there are at least 2 clients)
         # TODO: if >= 2 clients are already sending on startup, this fails. maybe needs to move to timer func?
