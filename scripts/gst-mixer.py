@@ -90,13 +90,13 @@ def on_pad_added(src, pad, *user_data):
     name = pad.get_name()
     print("tsdemux pad added: "+name)
 
+    # find corresponding ssrc for the active demuxer
+    ssrc = src.get_name().split("_")[-1]
+    teename = "tee_"+ssrc+"_"+stream[name]
+
     if name.startswith("video"):
 
         print("adding video subqueue")
-
-        # find corresponding ssrc for the active demuxer
-        ssrc = src.get_name().split("_")[-1]
-        teename = "tee_"+ssrc+"_"+stream[name]
 
         mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
@@ -164,6 +164,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("opusparse"),
             new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("opusdec", { "plc": True } ),
+            new_element("tee",{"allow-not-linked":True},myname=teename),
             new_element("autoaudiosink")
         ])
 
@@ -184,6 +185,8 @@ def mixer_check_cb(*user_data):
         # create single mixer for front stream
         if frontmixer == None:
             # TODO: add encoders instead of displaysink
+            # TODO: add a tee behind the frontmixer
+            # TODO: link tee and each individual mixer to mpegtsmux
             frontmixer = new_element("compositor",myname="frontmixer")
             add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
@@ -193,6 +196,7 @@ def mixer_check_cb(*user_data):
                 continue
 
             mytee = clients[c].front_tee
+            clients[c].front_linked = True
 
             # request and link pads from tee and frontmixer
             sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
@@ -204,8 +208,6 @@ def mixer_check_cb(*user_data):
             padnum = int(sinkpad.get_name().split("_")[1])
             sinkpad.set_property("xpos",offsets[padnum][0])
             sinkpad.set_property("ypos",offsets[padnum][1])
-
-            clients[c].front_linked = True
 
         new_client = False
 
