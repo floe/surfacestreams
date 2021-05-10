@@ -24,7 +24,7 @@ class Client:
 
 pipeline = None
 frontmixer = None
-new_client = False
+new_client = None
 
 clients = { }
 
@@ -84,7 +84,6 @@ def bus_call(bus, message, loop):
 # a TS demuxer pad has been added
 def on_pad_added(src, pad, *user_data):
 
-    global frontmixer
     global new_client
 
     name = pad.get_name()
@@ -122,35 +121,6 @@ def on_pad_added(src, pad, *user_data):
 
             clients[ssrc].surface_tee = mytee
 
-            # create mixers where needed (but only if there are at least 2 clients)
-            # TODO: if >= 2 clients are already sending on startup, this fails. maybe needs to move to timer func?
-            # reason: [clients] will be filled in first for all senders, followed by video streams
-            if len(clients) > 1:
-                for c in clients:
-                    client = clients[c]
-                    if client.mixer != None:
-                        continue
-                    # TODO: add encoders instead of displaysink
-                    tmpmixer = new_element("compositor",myname="mixer_"+c)
-                    add_and_link([ tmpmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
-                    client.mixer = tmpmixer
-
-            # get mixer for own ssrc
-            mymixer = pipeline.get_by_name("mixer_"+ssrc)
-
-            for c in clients:
-
-                if c == ssrc: # skip own ssrc
-                    continue
-
-                client = clients[c]
-
-                # for every _other_ mixer, link my tee to that mixer
-                add_and_link([ mytee, new_element("queue"), client.mixer ])
-
-                # for every _other_ tee, link that tee to my mixer
-                add_and_link([ client.surface_tee, new_element("queue"), mymixer ])
-
         elif stream[name] == "front":
 
             clients[ssrc].front_tee = mytee
@@ -168,7 +138,9 @@ def on_pad_added(src, pad, *user_data):
             new_element("autoaudiosink")
         ])
 
-        new_client = True
+        # audio stream is last one in bundle, so if this pad has been added,
+        # video streams are complete as well -> check mixer links in idle func
+        new_client = ssrc
 
     # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
@@ -178,9 +150,11 @@ def mixer_check_cb(*user_data):
     global new_client
     global frontmixer
 
-    if new_client:
+    if new_client != None:
 
         print("linking new client to mixers...")
+        ssrc = new_client
+        new_client = None
 
         # create single mixer for front stream
         if frontmixer == None:
@@ -190,6 +164,20 @@ def mixer_check_cb(*user_data):
             frontmixer = new_element("compositor",myname="frontmixer")
             add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
+        # create surface mixers where needed (but only if there are at least 2 clients)
+        # TODO: if >= 2 clients are already sending on startup, this fails. maybe needs to move to timer func?
+        # reason: [clients] will be filled in first for all senders, followed by video streams
+        if len(clients) > 1:
+            for c in clients:
+                client = clients[c]
+                if client.mixer != None:
+                    continue
+                # TODO: add encoders instead of displaysink
+                tmpmixer = new_element("compositor",myname="mixer_"+c)
+                add_and_link([ tmpmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+                client.mixer = tmpmixer
+
+        # link all not-linked clients to frontmixer
         for c in clients:
 
             if clients[c].front_linked:
@@ -209,7 +197,23 @@ def mixer_check_cb(*user_data):
             sinkpad.set_property("xpos",offsets[padnum][0])
             sinkpad.set_property("ypos",offsets[padnum][1])
 
-        new_client = False
+        # get tee/mixer for own ssrc
+        newmixer = clients[ssrc].mixer #pipeline.get_by_name("mixer_"+ssrc)
+        newtee   = clients[ssrc].surface_tee # pipeline.get_by_name("tee_"+ssrc+"_surface")
+
+        # link all other clients to new mixer, new client to other mixers
+        for c in clients:
+
+            if c == ssrc: # skip own ssrc
+                continue
+
+            other = clients[c]
+
+            # for every _other_ mixer, link my tee to that mixer
+            add_and_link([ newtee, new_element("queue"), other.mixer ])
+
+            # for every _other_ tee, link that tee to my mixer
+            add_and_link([ other.surface_tee, new_element("queue"), newmixer ])
 
     return GLib.SOURCE_CONTINUE #REMOVE
 
