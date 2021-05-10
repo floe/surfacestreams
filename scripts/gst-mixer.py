@@ -24,7 +24,7 @@ class Client:
 
 pipeline = None
 frontmixer = None
-new_client = None
+new_client = []
 
 clients = { }
 
@@ -140,7 +140,7 @@ def on_pad_added(src, pad, *user_data):
 
         # audio stream is last one in bundle, so if this pad has been added,
         # video streams are complete as well -> check mixer links in idle func
-        new_client = ssrc
+        new_client.append(ssrc)
 
     # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
@@ -150,11 +150,10 @@ def mixer_check_cb(*user_data):
     global new_client
     global frontmixer
 
-    if new_client != None:
+    if len(new_client) > 0:
 
-        print("linking new client to mixers...")
-        ssrc = new_client
-        new_client = None
+        ssrc = new_client.pop(0)
+        print("linking new client "+ssrc+" to mixers...")
 
         # create single mixer for front stream
         if frontmixer == None:
