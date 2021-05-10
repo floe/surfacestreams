@@ -66,6 +66,13 @@ def bus_call(bus, message, loop):
         err, debug = message.parse_error()
         print("Error: %s: %s" % (err, debug))
         loop.quit()
+    elif t == Gst.MessageType.WARNING:
+        err, debug = message.parse_warning()
+        print("Warning: %s: %s" % (err, debug))
+    elif t == Gst.MessageType.NEW_CLOCK:
+        print("New clock selected.")
+    elif t == Gst.MessageType.CLOCK_LOST:
+        print("Clock lost!")
     return True
 
 # a TS demuxer pad has been added
@@ -92,7 +99,7 @@ def on_pad_added(src, pad, *user_data):
 
         add_and_link([ src,
             new_element("h264parse"),
-            new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
+            new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             alpha,
@@ -108,13 +115,14 @@ def on_pad_added(src, pad, *user_data):
             clients[ssrc].tee = mytee
 
             # create mixers where needed (but only if there are at least 2 clients)
+            # TODO: if >= 2 clients are already sending on startup, this fails. maybe needs to move to timer func?
             if len(clients) > 1:
                 for c in clients:
                     client = clients[c]
                     if client.mixer != None:
                         continue
                     # TODO: add encoders instead of displaysink
-                    tmpmixer = new_element("videomixer",myname="mixer_"+c)
+                    tmpmixer = new_element("compositor",myname="mixer_"+c)
                     add_and_link([ tmpmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
                     client.mixer = tmpmixer
 
@@ -139,11 +147,12 @@ def on_pad_added(src, pad, *user_data):
             # create single mixer for front stream
             if frontmixer == None:
                 # TODO: add encoders instead of displaysink
-                frontmixer = new_element("videomixer",myname="frontmixer")
+                frontmixer = new_element("compositor",myname="frontmixer")
                 add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
 
             # request and link pads from tee and frontmixer
             sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
+            #sinkpad.set_property("max-last-buffer-repeat",10000000000)
             srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
             srcpad.link(sinkpad)
 
@@ -159,7 +168,7 @@ def on_pad_added(src, pad, *user_data):
 
         add_and_link([ src,
             new_element("opusparse"),
-            new_element("queue", { "max-size-time": 200000000, "leaky": "upstream" } ),
+            new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("opusdec", { "plc": True } ),
             new_element("autoaudiosink")
         ])
@@ -213,6 +222,8 @@ def probe_callback(pad,info,pdata):
 def main(args):
 
     global pipeline
+
+    print("SurfaceCast stream mixer component 0.1")
 
     Gst.init(None)
 

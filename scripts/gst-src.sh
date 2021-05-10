@@ -5,7 +5,7 @@
 
 cd "$(dirname $0)"
 
-queue="queue max-size-time=200000000 leaky=downstream"
+queue="queue" # max-size-time=200000000 leaky=downstream"
 # filesink _might_ need async=false if it blocks?
 
 [ "$1" = "-r" ] && {
