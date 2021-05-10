@@ -15,7 +15,8 @@ from gi.repository import Gst, GstBase, GstNet, GLib
 class Client:
     def __init__(self):
         self.ip = ""
-        self.tee = None
+        self.surface_tee = None
+        self.front_tee = None
         self.mixer = None
     def __repr__(self):
         return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
@@ -101,6 +102,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("h264parse"),
             new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
+            # TODO: make textoverlay configurable for debug output
             new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             alpha,
             mytee,
@@ -112,10 +114,11 @@ def on_pad_added(src, pad, *user_data):
 
         if stream[name] == "surface":
 
-            clients[ssrc].tee = mytee
+            clients[ssrc].surface_tee = mytee
 
             # create mixers where needed (but only if there are at least 2 clients)
             # TODO: if >= 2 clients are already sending on startup, this fails. maybe needs to move to timer func?
+            # reason: [clients] will be filled in first for all senders, followed by video streams
             if len(clients) > 1:
                 for c in clients:
                     client = clients[c]
@@ -140,7 +143,7 @@ def on_pad_added(src, pad, *user_data):
                 add_and_link([ mytee, new_element("queue"), client.mixer ])
 
                 # for every _other_ tee, link that tee to my mixer
-                add_and_link([ client.tee, new_element("queue"), mymixer ])
+                add_and_link([ client.surface_tee, new_element("queue"), mymixer ])
 
         elif stream[name] == "front":
 
@@ -161,6 +164,8 @@ def on_pad_added(src, pad, *user_data):
             sinkpad.set_property("xpos",offsets[padnum][0])
             sinkpad.set_property("ypos",offsets[padnum][1])
 
+            clients[ssrc].front_tee = mytee
+
     if name.startswith("audio"):
 
         print("adding audio subqueue")
@@ -175,6 +180,10 @@ def on_pad_added(src, pad, *user_data):
 
     # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
+
+def mixer_check_cb(*user_data):
+    #print(".",end="")
+    return GLib.SOURCE_CONTINUE
 
 # new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
@@ -236,6 +245,7 @@ def main(args):
     rtpdemux.connect("pad-added",on_ssrc_pad)
 
     # setup udp src with pad probe to retrieve address metadata
+    # TODO: make port configurable
     udpsrc = new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } )
 
     # initial pipeline: udpsrc -> caps -> rtpdemux
@@ -243,9 +253,13 @@ def main(args):
 
     # kick things off
     pipeline.set_state(Gst.State.PLAYING)
-
     loop = GLib.MainLoop()
 
+    # when no other events are pending, check the clients and link things if needed
+    # GLib.timeout_add_seconds(1, mixer_check_cb, None)
+    GLib.idle_add(mixer_check_cb, None)
+
+    # listen for bus messages
     bus = pipeline.get_bus()
     bus.add_signal_watch()
     bus.connect ("message", bus_call, loop)
