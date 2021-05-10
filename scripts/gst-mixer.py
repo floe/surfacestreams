@@ -17,18 +17,23 @@ class Client:
         self.ip = ""
         self.surface_tee = None
         self.front_tee = None
+        self.front_linked = False
         self.mixer = None
     def __repr__(self):
         return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
 
 pipeline = None
 frontmixer = None
+new_client = False
+
 clients = { }
+
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
     "audio_0_0043": "audio"
 }
+
 offsets = [
     (640,360),
     (  0,  0),
@@ -80,6 +85,7 @@ def bus_call(bus, message, loop):
 def on_pad_added(src, pad, *user_data):
 
     global frontmixer
+    global new_client
 
     name = pad.get_name()
     print("tsdemux pad added: "+name)
@@ -147,23 +153,6 @@ def on_pad_added(src, pad, *user_data):
 
         elif stream[name] == "front":
 
-            # create single mixer for front stream
-            if frontmixer == None:
-                # TODO: add encoders instead of displaysink
-                frontmixer = new_element("compositor",myname="frontmixer")
-                add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
-
-            # request and link pads from tee and frontmixer
-            sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
-            #sinkpad.set_property("max-last-buffer-repeat",10000000000)
-            srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
-            srcpad.link(sinkpad)
-
-            # set xpos/ypos properties on pad according to sequence number
-            padnum = int(sinkpad.get_name().split("_")[1])
-            sinkpad.set_property("xpos",offsets[padnum][0])
-            sinkpad.set_property("ypos",offsets[padnum][1])
-
             clients[ssrc].front_tee = mytee
 
     if name.startswith("audio"):
@@ -178,12 +167,49 @@ def on_pad_added(src, pad, *user_data):
             new_element("autoaudiosink")
         ])
 
+        new_client = True
+
     # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
     Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
 
 def mixer_check_cb(*user_data):
-    #print(".",end="")
-    return GLib.SOURCE_CONTINUE
+
+    global new_client
+    global frontmixer
+
+    if new_client:
+
+        print("linking new client to mixers...")
+
+        # create single mixer for front stream
+        if frontmixer == None:
+            # TODO: add encoders instead of displaysink
+            frontmixer = new_element("compositor",myname="frontmixer")
+            add_and_link([ frontmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+
+        for c in clients:
+
+            if clients[c].front_linked:
+                continue
+
+            mytee = clients[c].front_tee
+
+            # request and link pads from tee and frontmixer
+            sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
+            #sinkpad.set_property("max-last-buffer-repeat",10000000000)
+            srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
+            srcpad.link(sinkpad)
+
+            # set xpos/ypos properties on pad according to sequence number
+            padnum = int(sinkpad.get_name().split("_")[1])
+            sinkpad.set_property("xpos",offsets[padnum][0])
+            sinkpad.set_property("ypos",offsets[padnum][1])
+
+            clients[c].front_linked = True
+
+        new_client = False
+
+    return GLib.SOURCE_CONTINUE #REMOVE
 
 # new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
