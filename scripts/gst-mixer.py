@@ -25,6 +25,7 @@ class Client:
 pipeline = None
 frontmixer = None
 new_client = []
+mixer_links = []
 
 clients = { }
 
@@ -228,12 +229,16 @@ def mixer_check_cb(*user_data):
             other = clients[c]
 
             # for every _other_ mixer, link my tee to that mixer
-            print("  linking client "+ssrc+" to mixer "+c)
-            add_and_link([ newtee, new_element("queue"), other.mixer ])
+            if not ssrc+"_"+c in mixer_links:
+                print("  linking client "+ssrc+" to mixer "+c)
+                add_and_link([ newtee, new_element("queue"), other.mixer ])
+                mixer_links.append(ssrc+"_"+c)
 
             # for every _other_ tee, link that tee to my mixer
-            print("  linking client "+c+" to mixer "+ssrc)
-            add_and_link([ other.surface_tee, new_element("queue"), newmixer ])
+            if not c+"_"+ssrc in mixer_links:
+                print("  linking client "+c+" to mixer "+ssrc)
+                add_and_link([ other.surface_tee, new_element("queue"), newmixer ])
+                mixer_links.append(c+"_"+ssrc)
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
         Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
@@ -249,6 +254,8 @@ def on_ssrc_pad(src, pad, *user_data):
     ssrc = name.split("_")[-1]
     jbname = "rtpjb_"+ssrc
     print("ssrc pad added: "+name)
+
+    # TODO: maybe use a specific fixed SSRC (e.g. 0x12345678) to exit/restart?
 
     if name.startswith("rtcp"):
         # link the rtcp_src pad to jitterbuffer
