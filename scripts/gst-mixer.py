@@ -24,17 +24,25 @@ class Client:
 
 pipeline = None
 frontmixer = None
+
+# list of new clients that need to be linked
 new_client = []
+
+# links between individual client tee/mixer pairs
 mixer_links = []
 
+# list of clients
 clients = { }
 
+# mapping from transport stream to readable name
 stream = {
     "video_0_0041": "surface",
     "video_0_0042": "front",
     "audio_0_0043": "audio"
 }
 
+# position offsets for 4 front streams
+# FIXME: how to handle > 4 clients?
 offsets = [
     (640,360),
     (  0,  0),
@@ -205,11 +213,12 @@ def mixer_check_cb(*user_data):
 
             # request and link pads from tee and frontmixer
             sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
-            #sinkpad.set_property("max-last-buffer-repeat",10000000000)
+            #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
             srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
             srcpad.link(sinkpad)
 
             # set xpos/ypos properties on pad according to sequence number
+            # FIXME: only works with <= 4 clients at the moment
             padnum = int(sinkpad.get_name().split("_")[1])
             sinkpad.set_property("xpos",offsets[padnum][0])
             sinkpad.set_property("ypos",offsets[padnum][1])
@@ -219,8 +228,6 @@ def mixer_check_cb(*user_data):
         newtee   = clients[ssrc].surface_tee # pipeline.get_by_name("tee_"+ssrc+"_surface")
 
         # link all other clients to new mixer, new client to other mixers
-        # FIXME for already-running sources, the links are duplicated?
-        # TODO keep track of which mixers have been linked in Client object
         for c in clients:
 
             if c == ssrc: # skip own ssrc
