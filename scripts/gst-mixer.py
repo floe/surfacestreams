@@ -95,7 +95,7 @@ def on_pad_added(src, pad, *user_data):
 
     if name.startswith("video"):
 
-        print("adding video subqueue")
+        print("  creating video subqueue")
 
         mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
@@ -108,7 +108,7 @@ def on_pad_added(src, pad, *user_data):
             new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
             # TODO: make textoverlay configurable for debug output
-            new_element("textoverlay",{ "text": teename, "valignment": "top" }),
+            #new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             alpha,
             mytee,
             # uncomment for debug view of individual streams
@@ -127,7 +127,7 @@ def on_pad_added(src, pad, *user_data):
 
     if name.startswith("audio"):
 
-        print("adding audio subqueue")
+        print("  creating audio subqueue")
         # TODO: implement audio mixing
 
         add_and_link([ src,
@@ -150,12 +150,13 @@ def mixer_check_cb(*user_data):
     if len(new_client) > 0:
 
         ssrc = new_client.pop(0)
-        print("linking new client "+ssrc+" to mixers...")
+        print("setting up mixers for new client "+ssrc)
 
         # create single mixer for front stream
         if frontmixer == None:
             # TODO: add a tee behind the frontmixer
             # TODO: link tee and each individual mixer to mpegtsmux
+            print("  creating frontmixer subqueue")
             frontmixer = new_element("compositor",myname="frontmixer")
             add_and_link([ frontmixer,
                 new_element("videoconvert"),
@@ -169,16 +170,26 @@ def mixer_check_cb(*user_data):
             ])
 
         # create surface mixers where needed (but only if there are at least 2 clients)
-        # TODO: if >= 2 clients are already sending on startup, this fails. maybe needs to move to timer func?
-        # reason: [clients] will be filled in first for all senders, followed by video streams
         if len(clients) > 1:
+            num=2
             for c in clients:
                 client = clients[c]
                 if client.mixer != None:
                     continue
                 # TODO: add encoders instead of displaysink
+                print("  creating surface mixer for client "+c)
                 tmpmixer = new_element("compositor",myname="mixer_"+c)
-                add_and_link([ tmpmixer, new_element("videoconvert"), new_element("fpsdisplaysink") ])
+                add_and_link([ tmpmixer,
+                    new_element("videoconvert"),
+                    new_element("queue"),
+                    #new_element("fpsdisplaysink")
+                    new_element("x264enc",{"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}),
+                    #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
+                    new_element("mpegtsmux"),
+                    new_element("rtpmp2tpay"),
+                    new_element("udpsink",{"host":"127.0.0.1","port":5000+num})
+                ])
+                num += 1
                 client.mixer = tmpmixer
 
         # link all not-linked clients to frontmixer
@@ -187,6 +198,7 @@ def mixer_check_cb(*user_data):
             if clients[c].front_linked or clients[c].front_tee == None:
                 continue
 
+            print("  linking client "+c+" to frontmixer")
             mytee = clients[c].front_tee
             clients[c].front_linked = True
 
@@ -216,9 +228,11 @@ def mixer_check_cb(*user_data):
             other = clients[c]
 
             # for every _other_ mixer, link my tee to that mixer
+            print("  linking client "+ssrc+" to mixer "+c)
             add_and_link([ newtee, new_element("queue"), other.mixer ])
 
             # for every _other_ tee, link that tee to my mixer
+            print("  linking client "+c+" to mixer "+ssrc)
             add_and_link([ other.surface_tee, new_element("queue"), newmixer ])
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
