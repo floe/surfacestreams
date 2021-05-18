@@ -24,6 +24,7 @@ class Client:
 
 pipeline = None
 frontmixer = None
+frontstream = None
 
 # list of new clients that need to be linked
 new_client = []
@@ -49,6 +50,9 @@ offsets = [
     (640,  0),
     (  0,360)
 ]
+
+# parameters for x264enc components
+x264params = {"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}
 
 # conveniently create a new GStreamer element and set parameters
 def new_element(element_name,parameters={},myname=None):
@@ -155,6 +159,7 @@ def mixer_check_cb(*user_data):
 
     global new_client
     global frontmixer
+    global frontstream
 
     if len(new_client) > 0:
 
@@ -163,42 +168,48 @@ def mixer_check_cb(*user_data):
 
         # create single mixer for front stream
         if frontmixer == None:
-            # TODO: add a tee behind the frontmixer
-            # TODO: link tee and each individual mixer to mpegtsmux
             print("  creating frontmixer subqueue")
             frontmixer = new_element("compositor",myname="frontmixer")
+            frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
             add_and_link([ frontmixer,
                 new_element("videoconvert"),
                 new_element("queue"),
                 #new_element("fpsdisplaysink")
-                new_element("x264enc",{"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}),
-                #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
-                new_element("mpegtsmux"),
-                new_element("rtpmp2tpay"),
-                new_element("udpsink",{"host":"127.0.0.1","port":5001})
+                new_element("x264enc",x264params),
+                frontstream
+                #new_element("mpegtsmux"),
+                #new_element("rtpmp2tpay"),
+                #new_element("udpsink",{"host":"127.0.0.1","port":5001})
             ])
 
         # create surface mixers where needed (but only if there are at least 2 clients)
         if len(clients) > 1:
-            num=2
+            num=1
             for c in clients:
                 client = clients[c]
                 if client.mixer != None:
                     continue
-                # TODO: add encoders instead of displaysink
                 print("  creating surface mixer for client "+c)
                 tmpmixer = new_element("compositor",myname="mixer_"+c)
+                tmpmuxer = new_element("mpegtsmux",myname="muxer_"+c)
                 add_and_link([ tmpmixer,
                     new_element("videoconvert"),
                     new_element("queue"),
                     #new_element("fpsdisplaysink")
-                    new_element("x264enc",{"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}),
+                    new_element("x264enc",x264params),
                     #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
-                    new_element("mpegtsmux"),
+                    tmpmuxer,
                     new_element("rtpmp2tpay"),
                     new_element("udpsink",{"host":"127.0.0.1","port":5000+num})
+                    # TODO pick target host/port from client ip
                 ])
-                num += 1
+
+                # TODO refactor into method
+                frontsrcpad = frontstream.request_pad(frontstream.get_pad_template("src_%u"), None, None)
+                frontsinkpad = tmpmuxer.request_pad(tmpmuxer.get_pad_template("sink_%d"), None, None)
+                frontsrcpad.link(frontsinkpad)
+
+                num += 2
                 client.mixer = tmpmixer
 
         # link all not-linked clients to frontmixer
