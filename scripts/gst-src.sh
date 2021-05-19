@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # for sanity check, run:
-# ffplay -fflags nobuffer -flags low_delay -i rtp://127.0.0.1:5000/
+# ffplay -reorder_queue_size 0 -fflags nobuffer -flags low_delay -i rtp://127.0.0.1:5000/
 
 cd "$(dirname $0)"
 
