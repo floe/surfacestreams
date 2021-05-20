@@ -108,7 +108,7 @@ def on_pad_added(src, pad, *user_data):
 
     if name.startswith("video"):
 
-        print("  creating video subqueue")
+        print("  creating video decoding subqueue")
 
         mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
@@ -140,7 +140,7 @@ def on_pad_added(src, pad, *user_data):
 
     if name.startswith("audio"):
 
-        print("  creating audio subqueue")
+        print("  creating audio decoding subqueue")
         # TODO: implement audio mixing
 
         add_and_link([ src,
@@ -176,6 +176,7 @@ def mixer_check_cb(*user_data):
                 new_element("queue"),
                 #new_element("fpsdisplaysink")
                 new_element("x264enc",x264params),
+                # FIXME: new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
                 frontstream
                 #new_element("mpegtsmux"),
                 #new_element("rtpmp2tpay"),
@@ -184,14 +185,13 @@ def mixer_check_cb(*user_data):
 
         # create surface mixers where needed (but only if there are at least 2 clients)
         if len(clients) > 1:
-            num=1
             for c in clients:
                 client = clients[c]
                 if client.mixer != None:
                     continue
                 print("  creating surface mixer for client "+c)
                 tmpmixer = new_element("compositor",myname="mixer_"+c)
-                tmpmuxer = new_element("mpegtsmux",myname="muxer_"+c)
+                tmpmuxer = new_element("mpegtsmux",myname="muxer_"+c) # TODO: lower latency parameter?
                 add_and_link([ tmpmixer,
                     new_element("videoconvert"),
                     new_element("queue"),
@@ -200,16 +200,15 @@ def mixer_check_cb(*user_data):
                     #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
                     tmpmuxer,
                     new_element("rtpmp2tpay"),
-                    new_element("udpsink",{"host":"127.0.0.1","port":5000+num})
-                    # TODO pick target host/port from client ip
+                    new_element("udpsink",{"host":client.ip,"port":5000})
                 ])
+                print("  sending output stream for client "+c+" to "+client.ip+":5000")
 
                 # TODO refactor into method
                 frontsrcpad = frontstream.request_pad(frontstream.get_pad_template("src_%u"), None, None)
                 frontsinkpad = tmpmuxer.request_pad(tmpmuxer.get_pad_template("sink_%d"), None, None)
                 frontsrcpad.link(frontsinkpad)
 
-                num += 2
                 client.mixer = tmpmixer
 
         # link all not-linked clients to frontmixer
