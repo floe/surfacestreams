@@ -51,7 +51,7 @@ offsets = [
     (  0,360)
 ]
 
-# parameters for x264enc components
+# default parameters for x264enc components
 x264params = {"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}
 
 # conveniently create a new GStreamer element and set parameters
@@ -94,6 +94,13 @@ def bus_call(bus, message, loop):
         print("Clock lost!")
     return True
 
+# convenience function to link request pads
+def link_request_pads(el1, tpl1, el2, tpl2):
+    pad1 = el1.request_pad(el1.get_pad_template(tpl1), None, None)
+    pad2 = el2.request_pad(el2.get_pad_template(tpl2), None, None)
+    pad1.link(pad2)
+    return pad2
+
 # a TS demuxer pad has been added
 def on_pad_added(src, pad, *user_data):
 
@@ -120,11 +127,11 @@ def on_pad_added(src, pad, *user_data):
             new_element("h264parse"),
             new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
             new_element("avdec_h264"),
-            # TODO: make textoverlay configurable for debug output
+            # NOTE: make textoverlay configurable for debug output
             #new_element("textoverlay",{ "text": teename, "valignment": "top" }),
             alpha,
             mytee,
-            # uncomment for debug view of individual streams
+            # NOTE: make debug view of individual streams configurable
             #new_element("queue"),
             #new_element("videoconvert"),
             #new_element("fpsdisplaysink",{"sync":False})
@@ -176,13 +183,13 @@ def mixer_check_cb(*user_data):
                 new_element("queue"),
                 #new_element("fpsdisplaysink")
                 new_element("x264enc",x264params),
-                # FIXME: new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
                 frontstream
                 #new_element("mpegtsmux"),
                 #new_element("rtpmp2tpay"),
                 #new_element("udpsink",{"host":"127.0.0.1","port":5001})
             ])
 
+        # FIXME: seems to b0rk again when >= 2 clients are sending at startup?
         # create surface mixers where needed (but only if there are at least 2 clients)
         if len(clients) > 1:
             for c in clients:
@@ -197,6 +204,7 @@ def mixer_check_cb(*user_data):
                     new_element("queue"),
                     #new_element("fpsdisplaysink")
                     new_element("x264enc",x264params),
+                    new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
                     #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
                     tmpmuxer,
                     new_element("rtpmp2tpay"),
@@ -204,10 +212,8 @@ def mixer_check_cb(*user_data):
                 ])
                 print("  sending output stream for client "+c+" to "+client.ip+":5000")
 
-                # TODO refactor into method
-                frontsrcpad = frontstream.request_pad(frontstream.get_pad_template("src_%u"), None, None)
-                frontsinkpad = tmpmuxer.request_pad(tmpmuxer.get_pad_template("sink_%d"), None, None)
-                frontsrcpad.link(frontsinkpad)
+                # link frontstream tee to client-specific muxer
+                link_request_pads(frontstream,"src_%u",tmpmuxer,"sink_%d")
 
                 client.mixer = tmpmixer
 
@@ -222,10 +228,8 @@ def mixer_check_cb(*user_data):
             clients[c].front_linked = True
 
             # request and link pads from tee and frontmixer
-            sinkpad = frontmixer.request_pad(frontmixer.get_pad_template("sink_%u"), None, None)
+            sinkpad = link_request_pads(mytee,"src_%u",frontmixer,"sink_%u")
             #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
-            srcpad = mytee.request_pad(mytee.get_pad_template("src_%u"), None, None)
-            srcpad.link(sinkpad)
 
             # set xpos/ypos properties on pad according to sequence number
             # FIXME: only works with <= 4 clients at the moment
