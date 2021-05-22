@@ -128,7 +128,7 @@ def on_pad_added(src, pad, *user_data):
 
         add_and_link([ src,
             new_element("h264parse"),
-            new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
+            new_element("queue",{"max-size-time":100000000}),
             new_element("avdec_h264"),
             # NOTE: make textoverlay configurable for debug output
             #new_element("textoverlay",{ "text": teename, "valignment": "top" }),
@@ -155,7 +155,7 @@ def on_pad_added(src, pad, *user_data):
 
         add_and_link([ src,
             new_element("opusparse"),
-            new_element("queue"), #, { "max-size-time": 200000000, "leaky": "upstream" } ),
+            new_element("queue",{"max-size-time":100000000}),
             new_element("opusdec", { "plc": True } ),
             new_element("tee",{"allow-not-linked":True},myname=teename),
             new_element("autoaudiosink")
@@ -183,12 +183,13 @@ def mixer_check_cb(*user_data):
             frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
             add_and_link([ frontmixer,
                 new_element("videoconvert"),
-                new_element("queue"),
+                new_element("queue",{"max-size-buffers":1}),
                 new_element("x264enc",x264params),
                 frontstream
             ])
 
         # FIXME: seems to b0rk again when >= 2 clients are sending at startup?
+        # FIXME: do you need to loop all clients here, or just the new one we're handling right now?
         # create surface mixers where needed (but only if there are at least 2 clients)
         if len(clients) > 1:
             for c in clients:
@@ -200,7 +201,7 @@ def mixer_check_cb(*user_data):
                 tmpmuxer = new_element("mpegtsmux",myname="muxer_"+c) # TODO: lower latency parameter?
                 add_and_link([ tmpmixer,
                     new_element("videoconvert"),
-                    new_element("queue"),
+                    new_element("queue",{"max-size-buffers":1}),
                     new_element("x264enc",x264params),
                     new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
                     tmpmuxer,
@@ -291,7 +292,6 @@ def on_ssrc_pad(src, pad, *user_data):
     add_and_link([ src,
         new_element("rtpjitterbuffer", { "do-lost": True }, jbname ),
         new_element("rtpmp2tdepay"),
-        # FIXME: tsparse maybe not needed? new_element("tsparse", { "set-timestamps": True } ),
         tsdemux
     ])
 
