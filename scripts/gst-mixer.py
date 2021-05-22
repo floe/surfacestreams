@@ -147,6 +147,7 @@ def on_pad_added(src, pad, *user_data):
         elif stream[name] == "front":
 
             clients[ssrc].front_tee = mytee
+            create_frontmixer_queue()
 
     if name.startswith("audio"):
 
@@ -165,28 +166,35 @@ def on_pad_added(src, pad, *user_data):
         # video streams are complete as well -> check mixer links in idle func
         new_client.append(ssrc)
 
+
+# create single mixer for front stream
+def create_frontmixer_queue():
+
+    global frontmixer
+    global frontstream
+
+    if frontmixer != None:
+        return
+
+    print("  creating frontmixer subqueue")
+    frontmixer = new_element("compositor",myname="frontmixer")
+    frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
+    add_and_link([ frontmixer,
+        new_element("videoconvert"),
+        new_element("queue",{"max-size-buffers":1}),
+        new_element("x264enc",x264params),
+        frontstream
+    ])
+
+
 def mixer_check_cb(*user_data):
 
     global new_client
-    global frontmixer
-    global frontstream
 
     if len(new_client) > 0:
 
         ssrc = new_client.pop(0)
         print("setting up mixers for new client "+ssrc)
-
-        # create single mixer for front stream
-        if frontmixer == None:
-            print("  creating frontmixer subqueue")
-            frontmixer = new_element("compositor",myname="frontmixer")
-            frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
-            add_and_link([ frontmixer,
-                new_element("videoconvert"),
-                new_element("queue",{"max-size-buffers":1}),
-                new_element("x264enc",x264params),
-                frontstream
-            ])
 
         # FIXME: seems to b0rk again when >= 2 clients are sending at startup?
         # FIXME: do you need to loop all clients here, or just the new one we're handling right now?
