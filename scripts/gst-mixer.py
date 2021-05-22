@@ -147,7 +147,6 @@ def on_pad_added(src, pad, *user_data):
         elif stream[name] == "front":
 
             clients[ssrc].front_tee = mytee
-            create_frontmixer_queue()
 
     if name.startswith("audio"):
 
@@ -176,7 +175,7 @@ def create_frontmixer_queue():
     if frontmixer != None:
         return
 
-    print("  creating frontmixer subqueue")
+    print("creating frontmixer subqueue")
     frontmixer = new_element("compositor",myname="frontmixer")
     frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
     add_and_link([ frontmixer,
@@ -187,9 +186,32 @@ def create_frontmixer_queue():
     ])
 
 
+# link client to frontmixer
+def link_to_front(c):
+
+    if clients[c].front_linked or clients[c].front_tee == None:
+        return
+
+    print("  linking client "+c+" to frontmixer")
+    mytee = clients[c].front_tee
+    clients[c].front_linked = True
+
+    # request and link pads from tee and frontmixer
+    sinkpad = link_request_pads(mytee,"src_%u",frontmixer,"sink_%u")
+    #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
+
+    # set xpos/ypos properties on pad according to sequence number
+    # FIXME: only works with <= 4 clients at the moment
+    padnum = int(sinkpad.get_name().split("_")[1])
+    sinkpad.set_property("xpos",offsets[padnum][0])
+    sinkpad.set_property("ypos",offsets[padnum][1])
+
+
 def mixer_check_cb(*user_data):
 
     global new_client
+
+    create_frontmixer_queue()
 
     if len(new_client) > 0:
 
@@ -223,25 +245,9 @@ def mixer_check_cb(*user_data):
 
                 client.mixer = tmpmixer
 
-        # link all not-linked clients to frontmixer
+        # add missing frontmixer links
         for c in clients:
-
-            if clients[c].front_linked or clients[c].front_tee == None:
-                continue
-
-            print("  linking client "+c+" to frontmixer")
-            mytee = clients[c].front_tee
-            clients[c].front_linked = True
-
-            # request and link pads from tee and frontmixer
-            sinkpad = link_request_pads(mytee,"src_%u",frontmixer,"sink_%u")
-            #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
-
-            # set xpos/ypos properties on pad according to sequence number
-            # FIXME: only works with <= 4 clients at the moment
-            padnum = int(sinkpad.get_name().split("_")[1])
-            sinkpad.set_property("xpos",offsets[padnum][0])
-            sinkpad.set_property("ypos",offsets[padnum][1])
+            link_to_front(c)
 
         # get tee/mixer for own ssrc
         newmixer = clients[ssrc].mixer #pipeline.get_by_name("mixer_"+ssrc)
