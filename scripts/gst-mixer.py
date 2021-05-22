@@ -116,6 +116,9 @@ def on_pad_added(src, pad, *user_data):
     ssrc = src.get_name().split("_")[-1]
     teename = "tee_"+ssrc+"_"+stream[name]
 
+    # FIXME: race condition - on rare occasions, the demuxer pads for a running ssrc will
+    # get added _after_ the idle function has already run, and as the Client() object already
+    # exists before that, the idle function will mess things up
     if name.startswith("video"):
 
         print("  creating video decoding subqueue")
@@ -188,6 +191,7 @@ def create_frontmixer_queue():
 
 
 # link client to frontmixer
+# TODO: refactor into Client class method
 def link_to_front(c):
 
     if clients[c].front_linked or clients[c].front_tee == None:
@@ -219,7 +223,6 @@ def mixer_check_cb(*user_data):
         ssrc = new_client.pop(0)
         print("setting up mixers for new client "+ssrc)
 
-        # FIXME: seems to b0rk again when >= 2 clients are sending at startup?
         # FIXME: do you need to loop all clients here, or just the new one we're handling right now?
         # create surface mixers where needed (but only if there are at least 2 clients)
         if len(clients) > 1:
@@ -265,13 +268,13 @@ def mixer_check_cb(*user_data):
             # for every _other_ mixer, link my tee to that mixer
             if not ssrc+"_"+c in mixer_links:
                 print("  linking client "+ssrc+" to mixer "+c)
-                add_and_link([ newtee, new_element("queue"), other.mixer ])
+                add_and_link([ newtee, new_element("queue",{"max-size-buffers":1}), other.mixer ])
                 mixer_links.append(ssrc+"_"+c)
 
             # for every _other_ tee, link that tee to my mixer
             if not c+"_"+ssrc in mixer_links:
                 print("  linking client "+c+" to mixer "+ssrc)
-                add_and_link([ other.surface_tee, new_element("queue"), newmixer ])
+                add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), newmixer ])
                 mixer_links.append(c+"_"+ssrc)
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
