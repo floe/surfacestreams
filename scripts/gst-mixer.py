@@ -158,7 +158,8 @@ def on_pad_added(src, pad, *user_data):
             new_element("queue",{"max-size-time":100000000}),
             new_element("opusdec", { "plc": True } ),
             new_element("tee",{"allow-not-linked":True},myname=teename),
-            new_element("autoaudiosink")
+            # FIXME: ah crap, the audiosink was stalling the pipeline the whole time
+            #new_element("autoaudiosink")
         ])
 
         # audio stream is last one in bundle, so if this pad has been added,
@@ -211,9 +212,9 @@ def mixer_check_cb(*user_data):
 
     global new_client
 
-    create_frontmixer_queue()
-
     if len(new_client) > 0:
+
+        create_frontmixer_queue()
 
         ssrc = new_client.pop(0)
         print("setting up mixers for new client "+ssrc)
