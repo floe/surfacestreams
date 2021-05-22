@@ -54,6 +54,9 @@ offsets = [
 # default parameters for x264enc components
 x264params = {"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}
 
+# default parameters for queues
+queueparams = { "max-size-time": 1000000000 }
+
 # conveniently create a new GStreamer element and set parameters
 def new_element(element_name,parameters={},myname=None):
     element = Gst.ElementFactory.make(element_name,myname)
@@ -181,12 +184,8 @@ def mixer_check_cb(*user_data):
             add_and_link([ frontmixer,
                 new_element("videoconvert"),
                 new_element("queue"),
-                #new_element("fpsdisplaysink")
                 new_element("x264enc",x264params),
                 frontstream
-                #new_element("mpegtsmux"),
-                #new_element("rtpmp2tpay"),
-                #new_element("udpsink",{"host":"127.0.0.1","port":5001})
             ])
 
         # FIXME: seems to b0rk again when >= 2 clients are sending at startup?
@@ -202,10 +201,8 @@ def mixer_check_cb(*user_data):
                 add_and_link([ tmpmixer,
                     new_element("videoconvert"),
                     new_element("queue"),
-                    #new_element("fpsdisplaysink")
                     new_element("x264enc",x264params),
                     new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
-                    #new_element("tee",{"allow-not-linked":True},myname="frontstream"),
                     tmpmuxer,
                     new_element("rtpmp2tpay"),
                     new_element("udpsink",{"host":client.ip,"port":5000})
@@ -294,7 +291,7 @@ def on_ssrc_pad(src, pad, *user_data):
     add_and_link([ src,
         new_element("rtpjitterbuffer", { "do-lost": True }, jbname ),
         new_element("rtpmp2tdepay"),
-        new_element("tsparse", { "set-timestamps": True } ),
+        # FIXME: tsparse maybe not needed? new_element("tsparse", { "set-timestamps": True } ),
         tsdemux
     ])
 
