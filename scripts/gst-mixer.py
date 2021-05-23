@@ -89,13 +89,12 @@ class Client:
 
         add_and_link([
             self.audio_mixer,
-            new_element("queue",{"max-size-buffers":1}),
+            new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters? queue after encoder?
             new_element("opusenc",{"bitrate":16000}),
-            self.muxer,
+            new_element("queue",{"max-size-time":100000000}),
+            #new_element("fakesink")
+            self.muxer
         ])
-
-        # link frontstream tee to client-specific muxer
-        link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
 
     # link all other clients to this mixer, this client to other mixers
     def link_surface_streams(self):
@@ -118,6 +117,28 @@ class Client:
                 print("  linking client "+c+" to mixer "+self.ssrc)
                 add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), self.mixer ])
                 mixer_links.append(c+"_"+self.ssrc)
+
+    # link all other audio streams to this mixer, this client to other mixers
+    def link_audio_streams(self):
+
+        for c in clients:
+
+            if c == self.ssrc: # skip own ssrc
+                continue
+
+            other = clients[c]
+
+            # for every _other_ mixer, link my tee to that mixer
+            if not self.ssrc+"_"+c+"_audio" in mixer_links:
+                print("  linking audio stream "+self.ssrc+" to audio mixer "+c)
+                add_and_link([ self.audio_tee, new_element("queue",{"max-size-buffers":1}), other.audio_mixer ])
+                mixer_links.append(self.ssrc+"_"+c+"_audio")
+
+            # for every _other_ tee, link that tee to my mixer
+            if not c+"_"+self.ssrc+"_audio" in mixer_links:
+                print("  linking audio stream "+c+" to audio mixer "+self.ssrc)
+                add_and_link([ other.audio_tee, new_element("queue",{"max-size-buffers":1}), self.audio_mixer ])
+                mixer_links.append(c+"_"+self.ssrc+"_audio")
 
     # create video decoding subqueue
     def create_video_decoder(self,src,teename):
@@ -323,6 +344,7 @@ def mixer_check_cb(*user_data):
         if len(clients) >= 2:
             for c in clients:
                 clients[c].create_surface_mixer()
+                clients[c].create_audio_mixer()
 
         # add missing frontmixer links
         for c in clients:
@@ -330,6 +352,9 @@ def mixer_check_cb(*user_data):
 
         # add missing surface mixer links
         clients[ssrc].link_surface_streams()
+
+        # add missing audio stream links
+        clients[ssrc].link_audio_streams()
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
         Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug")
