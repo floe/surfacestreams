@@ -11,6 +11,7 @@ gi.require_version('GstNet', '1.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gst, GstBase, GstNet, GLib
 
+
 # collection of all data for one client
 class Client:
 
@@ -71,6 +72,28 @@ class Client:
         link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
         print("  sending output stream for client "+self.ssrc+" to "+self.ip+":5000")
 
+    # link all other clients to this mixer, this client to other mixers
+    def link_surface_streams(self):
+
+        for c in clients:
+
+            if c == self.ssrc: # skip own ssrc
+                continue
+
+            other = clients[c]
+
+            # for every _other_ mixer, link my tee to that mixer
+            if not self.ssrc+"_"+c in mixer_links:
+                print("  linking client "+self.ssrc+" to mixer "+c)
+                add_and_link([ self.surface_tee, new_element("queue",{"max-size-buffers":1}), other.mixer ])
+                mixer_links.append(self.ssrc+"_"+c)
+
+            # for every _other_ tee, link that tee to my mixer
+            if not c+"_"+self.ssrc in mixer_links:
+                print("  linking client "+c+" to mixer "+self.ssrc)
+                add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), self.mixer ])
+                mixer_links.append(c+"_"+self.ssrc)
+
 
 pipeline = None
 frontmixer = None
@@ -107,6 +130,7 @@ x264params = {"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerol
 # default parameters for queues
 queueparams = { "max-size-time": 1000000000 }
 
+
 # conveniently create a new GStreamer element and set parameters
 def new_element(element_name,parameters={},myname=None):
     element = Gst.ElementFactory.make(element_name,myname)
@@ -114,7 +138,7 @@ def new_element(element_name,parameters={},myname=None):
         element.set_property(key,val)
     return element
 
-# add a list of elements to the pipeline and link them in sequence
+# convenience function to add a list of elements to the pipeline and link them in sequence
 def add_and_link(elements):
     prev = None
     for item in elements:
@@ -153,6 +177,7 @@ def link_request_pads(el1, tpl1, el2, tpl2):
     pad2 = el2.request_pad(el2.get_pad_template(tpl2), None, None)
     pad1.link(pad2)
     return pad2
+
 
 # a TS demuxer pad has been added
 def on_pad_added(src, pad, *user_data):
@@ -231,9 +256,12 @@ def create_frontmixer_queue():
         return
 
     print("creating frontmixer subqueue")
+
     frontmixer = new_element("compositor",myname="frontmixer")
     frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
-    add_and_link([ frontmixer,
+
+    add_and_link([
+        frontmixer,
         new_element("videoconvert"),
         new_element("queue",{"max-size-buffers":1}),
         new_element("x264enc",x264params),
@@ -252,9 +280,9 @@ def mixer_check_cb(*user_data):
         ssrc = new_client.pop(0)
         print("setting up mixers for new client "+ssrc)
 
-        # FIXME: do you need to loop all clients here, or just the new one we're handling right now?
         # create surface mixers where needed (but only if there are at least 2 clients)
-        if len(clients) > 1:
+        # we need to check all clients, as the first client can't get a mixer on its own
+        if len(clients) >= 2:
             for c in clients:
                 clients[c].create_surface_mixer()
 
@@ -262,30 +290,8 @@ def mixer_check_cb(*user_data):
         for c in clients:
             clients[c].link_to_front()
 
-        # get tee/mixer for own ssrc
-        newmixer = clients[ssrc].mixer #pipeline.get_by_name("mixer_"+ssrc)
-        newtee   = clients[ssrc].surface_tee # pipeline.get_by_name("tee_"+ssrc+"_surface")
-
-        # link all other clients to new mixer, new client to other mixers
-        for c in clients:
-
-            if c == ssrc: # skip own ssrc
-                continue
-
-            other = clients[c]
-
-            # TODO: refactor into Client() method
-            # for every _other_ mixer, link my tee to that mixer
-            if not ssrc+"_"+c in mixer_links:
-                print("  linking client "+ssrc+" to mixer "+c)
-                add_and_link([ newtee, new_element("queue",{"max-size-buffers":1}), other.mixer ])
-                mixer_links.append(ssrc+"_"+c)
-
-            # for every _other_ tee, link that tee to my mixer
-            if not c+"_"+ssrc in mixer_links:
-                print("  linking client "+c+" to mixer "+ssrc)
-                add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), newmixer ])
-                mixer_links.append(c+"_"+ssrc)
+        # add missing surface mixer links
+        clients[ssrc].link_surface_streams()
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
         Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
