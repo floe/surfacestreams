@@ -22,12 +22,12 @@ class Client:
         self.surface_tee = None
         self.front_tee = None
         self.front_linked = False
-        self.mixer = None
+        self.surface_mixer = None
         self.muxer = None
         self.ssrc = ssrc
 
     def __repr__(self):
-        return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
+        return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.surface_mixer))
 
     # try to avoid race condition where idle loop runs before all streams for client have been added
     def ready(self):
@@ -55,16 +55,16 @@ class Client:
     # create surface mixer for client
     def create_surface_mixer(self):
 
-        if self.mixer != None:
+        if self.surface_mixer != None:
             return
 
         print("  creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
 
-        self.mixer = new_element("compositor",myname="mixer_"+self.ssrc)
+        self.surface_mixer = new_element("compositor",myname="mixer_"+self.ssrc)
         self.muxer = new_element("mpegtsmux", {"alignment":7}, myname="muxer_"+self.ssrc)
 
         add_and_link([
-            self.mixer,
+            self.surface_mixer,
             new_element("videoconvert"),
             new_element("queue",{"max-size-buffers":1}),
             new_element("x264enc",x264params),
@@ -91,55 +91,35 @@ class Client:
             self.audio_mixer,
             new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters?
             new_element("opusenc",{"bitrate":16000}),
-            #new_element("queue",{"max-size-time":100000000}),
             self.muxer
         ])
 
+    # FIXME: once again, b0rks if >= 2 clients already sending on startup
+    # link all other clients to this mixer, this client to other mixers
+    def link_streams(self,prefix,qparams):
+
+        for c in clients:
+
+            if c == self.ssrc: # skip own ssrc
+                continue
+
+            other = clients[c]
+
+            # for every _other_ mixer, link my tee to that mixer
+            link_streams_onehalf(self,other,prefix,qparams)
+
+            # for every _other_ tee, link that tee to my mixer
+            link_streams_onehalf(other,self,prefix,qparams)
+
     # link all other clients to this mixer, this client to other mixers
     def link_surface_streams(self):
+        self.link_streams("surface_",{"max-size-buffers":1})
+        return
 
-        for c in clients:
-
-            if c == self.ssrc: # skip own ssrc
-                continue
-
-            other = clients[c]
-
-            # for every _other_ mixer, link my tee to that mixer
-            if not self.ssrc+"_"+c in mixer_links:
-                print("  linking client "+self.ssrc+" to mixer "+c)
-                add_and_link([ self.surface_tee, new_element("queue",{"max-size-buffers":1}), other.mixer ])
-                mixer_links.append(self.ssrc+"_"+c)
-
-            # for every _other_ tee, link that tee to my mixer
-            if not c+"_"+self.ssrc in mixer_links:
-                print("  linking client "+c+" to mixer "+self.ssrc)
-                add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), self.mixer ])
-                mixer_links.append(c+"_"+self.ssrc)
-
-    # TODO: refactor this and link_surface_streams into one
-    # FIXME: once again, b0rks if >= 2 clients already sending on startup
     # link all other audio streams to this mixer, this client to other mixers
     def link_audio_streams(self):
-
-        for c in clients:
-
-            if c == self.ssrc: # skip own ssrc
-                continue
-
-            other = clients[c]
-
-            # for every _other_ mixer, link my tee to that mixer
-            if not self.ssrc+"_"+c+"_audio" in mixer_links:
-                print("  linking audio stream "+self.ssrc+" to audio mixer "+c)
-                add_and_link([ self.audio_tee, new_element("queue",{"max-size-time":100000000}), other.audio_mixer ])
-                mixer_links.append(self.ssrc+"_"+c+"_audio")
-
-            # for every _other_ tee, link that tee to my mixer
-            if not c+"_"+self.ssrc+"_audio" in mixer_links:
-                print("  linking audio stream "+c+" to audio mixer "+self.ssrc)
-                add_and_link([ other.audio_tee, new_element("queue",{"max-size-time":100000000}), self.audio_mixer ])
-                mixer_links.append(c+"_"+self.ssrc+"_audio")
+        self.link_streams("audio_",{"max-size-time":100000000})
+        return
 
     # create video decoding subqueue
     def create_video_decoder(self,src,teename):
@@ -187,6 +167,18 @@ class Client:
             new_element("opusdec", { "plc": True } ),
             self.audio_tee
         ])
+
+
+# helper function to link source tees to destination mixers
+def link_streams_onehalf(src,dest,prefix,qparams):
+    if not prefix+src.ssrc+"_"+dest.ssrc in mixer_links:
+        print("  linking client "+src.ssrc+" to "+prefix+"mixer "+dest.ssrc)
+        add_and_link([
+            getattr(src,prefix+"tee"),
+            new_element("queue",qparams),
+            getattr(dest,prefix+"mixer")
+        ])
+        mixer_links.append(prefix+src.ssrc+"_"+dest.ssrc)
 
 
 pipeline = None
