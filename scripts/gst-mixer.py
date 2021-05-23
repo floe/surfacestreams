@@ -20,6 +20,7 @@ class Client:
         self.front_tee = None
         self.front_linked = False
         self.mixer = None
+        self.muxer = None
         self.ssrc = ssrc
 
     def __repr__(self):
@@ -43,6 +44,32 @@ class Client:
         padnum = int(sinkpad.get_name().split("_")[1])
         sinkpad.set_property("xpos",offsets[padnum][0])
         sinkpad.set_property("ypos",offsets[padnum][1])
+
+    # create surface mixer for client
+    def create_surface_mixer(self):
+
+        if self.mixer != None:
+            return
+
+        print("  creating surface mixer for client "+self.ssrc)
+
+        self.mixer = new_element("compositor",myname="mixer_"+self.ssrc)
+        self.muxer = new_element("mpegtsmux", myname="muxer_"+self.ssrc) # TODO: lower latency parameter?
+
+        add_and_link([
+            self.mixer,
+            new_element("videoconvert"),
+            new_element("queue",{"max-size-buffers":1}),
+            new_element("x264enc",x264params),
+            new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
+            self.muxer,
+            new_element("rtpmp2tpay"),
+            new_element("udpsink",{"host":self.ip,"port":5000})
+        ])
+
+        # link frontstream tee to client-specific muxer
+        link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
+        print("  sending output stream for client "+self.ssrc+" to "+self.ip+":5000")
 
 
 pipeline = None
@@ -214,7 +241,6 @@ def create_frontmixer_queue():
     ])
 
 
-
 def mixer_check_cb(*user_data):
 
     global new_client
@@ -230,28 +256,7 @@ def mixer_check_cb(*user_data):
         # create surface mixers where needed (but only if there are at least 2 clients)
         if len(clients) > 1:
             for c in clients:
-                client = clients[c]
-                if client.mixer != None:
-                    continue
-                # TODO: refactor into Client() method
-                print("  creating surface mixer for client "+c)
-                tmpmixer = new_element("compositor",myname="mixer_"+c)
-                tmpmuxer = new_element("mpegtsmux",myname="muxer_"+c) # TODO: lower latency parameter?
-                add_and_link([ tmpmixer,
-                    new_element("videoconvert"),
-                    new_element("queue",{"max-size-buffers":1}),
-                    new_element("x264enc",x264params),
-                    new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
-                    tmpmuxer,
-                    new_element("rtpmp2tpay"),
-                    new_element("udpsink",{"host":client.ip,"port":5000})
-                ])
-                print("  sending output stream for client "+c+" to "+client.ip+":5000")
-
-                # link frontstream tee to client-specific muxer
-                link_request_pads(frontstream,"src_%u",tmpmuxer,"sink_%d")
-
-                client.mixer = tmpmixer
+                clients[c].create_surface_mixer()
 
         # add missing frontmixer links
         for c in clients:
