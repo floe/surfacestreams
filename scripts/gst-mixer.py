@@ -28,6 +28,10 @@ class Client:
     def __repr__(self):
         return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
 
+    # try to avoid race condition where idle loop runs before all streams for client have been added
+    def ready(self):
+        return self.audio_tee != None and self.surface_tee != None and self.front_tee != None
+
     # link client to frontmixer
     def link_to_front(self):
 
@@ -216,7 +220,7 @@ def bus_call(bus, message, loop):
         err, debug = message.parse_warning()
         print("Warning: %s: %s" % (err, debug))
     elif t == Gst.MessageType.NEW_CLOCK:
-        print("New clock selected.")
+        print("New clock source selected.")
     elif t == Gst.MessageType.CLOCK_LOST:
         print("Clock lost!")
     return True
@@ -241,13 +245,12 @@ def on_pad_added(src, pad, *user_data):
     ssrc = src.get_name().split("_")[-1]
     teename = "tee_"+ssrc+"_"+stream[name]
 
-    # FIXME: race condition - on rare occasions, the demuxer pads for a running ssrc will
-    # get added _after_ the idle function has already run, and as the Client() object already
-    # exists before that, the idle function will mess things up
+    # create video decoders
     if name.startswith("video"):
 
         clients[ssrc].create_video_decoder(src,teename)
 
+    # create audio decoder
     if name.startswith("audio"):
 
         clients[ssrc].create_audio_decoder(src,teename)
@@ -286,6 +289,9 @@ def mixer_check_cb(*user_data):
 
     if len(new_client) > 0:
 
+        if not clients[new_client[0]].ready():
+            return GLib.SOURCE_CONTINUE
+
         create_frontmixer_queue()
 
         ssrc = new_client.pop(0)
@@ -305,9 +311,10 @@ def mixer_check_cb(*user_data):
         clients[ssrc].link_surface_streams()
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
-        Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug.dot")
+        Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug")
 
     return GLib.SOURCE_CONTINUE #REMOVE
+
 
 # new ssrc coming in on UDP socket, i.e. new client
 def on_ssrc_pad(src, pad, *user_data):
@@ -344,6 +351,7 @@ def on_ssrc_pad(src, pad, *user_data):
     # store client metadata
     clients[ssrc] = Client(ssrc)
 
+
 # pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
     buf = info.get_buffer()
@@ -353,6 +361,7 @@ def probe_callback(pad,info,pdata):
     if ssrc in clients:
         clients[ssrc].ip = addr
     return Gst.PadProbeReturn.OK
+
 
 def main(args):
 
