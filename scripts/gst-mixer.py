@@ -52,10 +52,10 @@ class Client:
         if self.mixer != None:
             return
 
-        print("  creating surface mixer for client "+self.ssrc)
+        print("  creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
 
         self.mixer = new_element("compositor",myname="mixer_"+self.ssrc)
-        self.muxer = new_element("mpegtsmux", myname="muxer_"+self.ssrc) # TODO: lower latency parameter?
+        self.muxer = new_element("mpegtsmux", myname="muxer_"+self.ssrc)
 
         add_and_link([
             self.mixer,
@@ -70,7 +70,6 @@ class Client:
 
         # link frontstream tee to client-specific muxer
         link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
-        print("  sending output stream for client "+self.ssrc+" to "+self.ip+":5000")
 
     # link all other clients to this mixer, this client to other mixers
     def link_surface_streams(self):
@@ -93,6 +92,38 @@ class Client:
                 print("  linking client "+c+" to mixer "+self.ssrc)
                 add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), self.mixer ])
                 mixer_links.append(c+"_"+self.ssrc)
+
+    # create video decoding subqueue
+    def create_video_decoder(self,src,teename):
+
+        print("  creating video decoding subqueue")
+
+        mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
+
+        alpha = None
+        if teename.endswith("surface"):
+            alpha = new_element("alpha", { "method": "green" } )
+
+        add_and_link([
+            src,
+            new_element("h264parse"),
+            new_element("queue",{"max-size-time":100000000}),
+            new_element("avdec_h264"),
+            # NOTE: make textoverlay configurable for debug output
+            #new_element("textoverlay",{ "text": teename, "valignment": "top" }),
+            alpha,
+            mytee,
+            # NOTE: make debug view of individual streams configurable
+            #new_element("queue"),
+            #new_element("videoconvert"),
+            #new_element("fpsdisplaysink",{"sync":False})
+        ])
+
+        # store reference to tee in client
+        if teename.endswith("surface"):
+            self.surface_tee = mytee
+        elif teename.endswith("front"):
+            self.front_tee = mytee
 
 
 pipeline = None
@@ -196,36 +227,7 @@ def on_pad_added(src, pad, *user_data):
     # exists before that, the idle function will mess things up
     if name.startswith("video"):
 
-        print("  creating video decoding subqueue")
-
-        # TODO: refactor into Client() class method?
-        mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
-
-        alpha = None
-        if stream[name] == "surface":
-            alpha = new_element("alpha", { "method": "green" } )
-
-        add_and_link([ src,
-            new_element("h264parse"),
-            new_element("queue",{"max-size-time":100000000}),
-            new_element("avdec_h264"),
-            # NOTE: make textoverlay configurable for debug output
-            #new_element("textoverlay",{ "text": teename, "valignment": "top" }),
-            alpha,
-            mytee,
-            # NOTE: make debug view of individual streams configurable
-            #new_element("queue"),
-            #new_element("videoconvert"),
-            #new_element("fpsdisplaysink",{"sync":False})
-        ])
-
-        if stream[name] == "surface":
-
-            clients[ssrc].surface_tee = mytee
-
-        elif stream[name] == "front":
-
-            clients[ssrc].front_tee = mytee
+        clients[ssrc].create_video_decoder(src,teename)
 
     if name.startswith("audio"):
 
@@ -320,6 +322,7 @@ def on_ssrc_pad(src, pad, *user_data):
     # add pad probe for buffer metadata (which contains sender IP address)
     pad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
+    # TODO: lower latency parameter?
     tsdemux = new_element("tsdemux",myname="tsd_"+ssrc)
     tsdemux.connect("pad-added",on_pad_added)
 
