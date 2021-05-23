@@ -17,6 +17,7 @@ class Client:
 
     def __init__(self,ssrc):
         self.ip = ""
+        self.audio_mixer = None
         self.audio_tee = None
         self.surface_tee = None
         self.front_tee = None
@@ -60,7 +61,7 @@ class Client:
         print("  creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
 
         self.mixer = new_element("compositor",myname="mixer_"+self.ssrc)
-        self.muxer = new_element("mpegtsmux", myname="muxer_"+self.ssrc)
+        self.muxer = new_element("mpegtsmux", {"alignment":7}, myname="muxer_"+self.ssrc)
 
         add_and_link([
             self.mixer,
@@ -71,6 +72,26 @@ class Client:
             self.muxer,
             new_element("rtpmp2tpay"),
             new_element("udpsink",{"host":self.ip,"port":5000})
+        ])
+
+        # link frontstream tee to client-specific muxer
+        link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
+
+    # create audio mixer for client
+    def create_audio_mixer(self):
+
+        if self.audio_mixer != None or self.muxer == None:
+            return
+
+        print("  creating audio mixer for client "+self.ssrc)
+
+        self.audio_mixer = new_element("audiomixer",myname="audio_"+self.ssrc)
+
+        add_and_link([
+            self.audio_mixer,
+            new_element("queue",{"max-size-buffers":1}),
+            new_element("opusenc",{"bitrate":16000}),
+            self.muxer,
         ])
 
         # link frontstream tee to client-specific muxer
