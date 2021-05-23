@@ -89,10 +89,9 @@ class Client:
 
         add_and_link([
             self.audio_mixer,
-            new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters? queue after encoder?
+            new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters?
             new_element("opusenc",{"bitrate":16000}),
-            new_element("queue",{"max-size-time":100000000}),
-            #new_element("fakesink")
+            #new_element("queue",{"max-size-time":100000000}),
             self.muxer
         ])
 
@@ -118,6 +117,8 @@ class Client:
                 add_and_link([ other.surface_tee, new_element("queue",{"max-size-buffers":1}), self.mixer ])
                 mixer_links.append(c+"_"+self.ssrc)
 
+    # TODO: refactor this and link_surface_streams into one
+    # FIXME: once again, b0rks if >= 2 clients already sending on startup
     # link all other audio streams to this mixer, this client to other mixers
     def link_audio_streams(self):
 
@@ -131,13 +132,13 @@ class Client:
             # for every _other_ mixer, link my tee to that mixer
             if not self.ssrc+"_"+c+"_audio" in mixer_links:
                 print("  linking audio stream "+self.ssrc+" to audio mixer "+c)
-                add_and_link([ self.audio_tee, new_element("queue",{"max-size-buffers":1}), other.audio_mixer ])
+                add_and_link([ self.audio_tee, new_element("queue",{"max-size-time":100000000}), other.audio_mixer ])
                 mixer_links.append(self.ssrc+"_"+c+"_audio")
 
             # for every _other_ tee, link that tee to my mixer
             if not c+"_"+self.ssrc+"_audio" in mixer_links:
                 print("  linking audio stream "+c+" to audio mixer "+self.ssrc)
-                add_and_link([ other.audio_tee, new_element("queue",{"max-size-buffers":1}), self.audio_mixer ])
+                add_and_link([ other.audio_tee, new_element("queue",{"max-size-time":100000000}), self.audio_mixer ])
                 mixer_links.append(c+"_"+self.ssrc+"_audio")
 
     # create video decoding subqueue
@@ -176,7 +177,6 @@ class Client:
     def create_audio_decoder(self,src,teename):
 
         print("  creating audio decoding subqueue")
-        # TODO: implement audio mixing
 
         self.audio_tee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
@@ -186,8 +186,6 @@ class Client:
             new_element("queue",{"max-size-time":100000000}),
             new_element("opusdec", { "plc": True } ),
             self.audio_tee
-            # FIXME: ah crap, the audiosink was stalling the pipeline the whole time
-            #new_element("autoaudiosink")
         ])
 
 
