@@ -13,14 +13,37 @@ from gi.repository import Gst, GstBase, GstNet, GLib
 
 # collection of all data for one client
 class Client:
-    def __init__(self):
+
+    def __init__(self,ssrc):
         self.ip = ""
         self.surface_tee = None
         self.front_tee = None
         self.front_linked = False
         self.mixer = None
+        self.ssrc = ssrc
+
     def __repr__(self):
         return("Client "+self.ip+": Tee "+str(self.tee)+", Mixer: "+str(self.mixer))
+
+    # link client to frontmixer
+    def link_to_front(self):
+
+        if self.front_linked or self.front_tee == None:
+            return
+
+        print("  linking client "+self.ssrc+" to frontmixer")
+        self.front_linked = True
+
+        # request and link pads from tee and frontmixer
+        sinkpad = link_request_pads(self.front_tee,"src_%u",frontmixer,"sink_%u")
+        #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
+
+        # set xpos/ypos properties on pad according to sequence number
+        # FIXME: only works with <= 4 clients at the moment
+        padnum = int(sinkpad.get_name().split("_")[1])
+        sinkpad.set_property("xpos",offsets[padnum][0])
+        sinkpad.set_property("ypos",offsets[padnum][1])
+
 
 pipeline = None
 frontmixer = None
@@ -123,6 +146,7 @@ def on_pad_added(src, pad, *user_data):
 
         print("  creating video decoding subqueue")
 
+        # TODO: refactor into Client() class method?
         mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
         alpha = None
@@ -190,27 +214,6 @@ def create_frontmixer_queue():
     ])
 
 
-# link client to frontmixer
-# TODO: refactor into Client class method
-def link_to_front(c):
-
-    if clients[c].front_linked or clients[c].front_tee == None:
-        return
-
-    print("  linking client "+c+" to frontmixer")
-    mytee = clients[c].front_tee
-    clients[c].front_linked = True
-
-    # request and link pads from tee and frontmixer
-    sinkpad = link_request_pads(mytee,"src_%u",frontmixer,"sink_%u")
-    #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
-
-    # set xpos/ypos properties on pad according to sequence number
-    # FIXME: only works with <= 4 clients at the moment
-    padnum = int(sinkpad.get_name().split("_")[1])
-    sinkpad.set_property("xpos",offsets[padnum][0])
-    sinkpad.set_property("ypos",offsets[padnum][1])
-
 
 def mixer_check_cb(*user_data):
 
@@ -230,6 +233,7 @@ def mixer_check_cb(*user_data):
                 client = clients[c]
                 if client.mixer != None:
                     continue
+                # TODO: refactor into Client() method
                 print("  creating surface mixer for client "+c)
                 tmpmixer = new_element("compositor",myname="mixer_"+c)
                 tmpmuxer = new_element("mpegtsmux",myname="muxer_"+c) # TODO: lower latency parameter?
@@ -251,7 +255,7 @@ def mixer_check_cb(*user_data):
 
         # add missing frontmixer links
         for c in clients:
-            link_to_front(c)
+            clients[c].link_to_front()
 
         # get tee/mixer for own ssrc
         newmixer = clients[ssrc].mixer #pipeline.get_by_name("mixer_"+ssrc)
@@ -265,6 +269,7 @@ def mixer_check_cb(*user_data):
 
             other = clients[c]
 
+            # TODO: refactor into Client() method
             # for every _other_ mixer, link my tee to that mixer
             if not ssrc+"_"+c in mixer_links:
                 print("  linking client "+ssrc+" to mixer "+c)
@@ -314,7 +319,7 @@ def on_ssrc_pad(src, pad, *user_data):
     ])
 
     # store client metadata
-    clients[ssrc] = Client()
+    clients[ssrc] = Client(ssrc)
 
 # pad probe for reading address metadata
 def probe_callback(pad,info,pdata):
