@@ -17,6 +17,7 @@ class Client:
 
     def __init__(self,ssrc):
         self.ip = ""
+        self.audio_tee = None
         self.surface_tee = None
         self.front_tee = None
         self.front_linked = False
@@ -125,6 +126,24 @@ class Client:
         elif teename.endswith("front"):
             self.front_tee = mytee
 
+    # create audio decoding subqueue
+    def create_audio_decoder(self,src,teename):
+
+        print("  creating audio decoding subqueue")
+        # TODO: implement audio mixing
+
+        self.audio_tee = new_element("tee",{"allow-not-linked":True},myname=teename)
+
+        add_and_link([
+            src,
+            new_element("opusparse"),
+            new_element("queue",{"max-size-time":100000000}),
+            new_element("opusdec", { "plc": True } ),
+            self.audio_tee
+            # FIXME: ah crap, the audiosink was stalling the pipeline the whole time
+            #new_element("autoaudiosink")
+        ])
+
 
 pipeline = None
 frontmixer = None
@@ -231,17 +250,7 @@ def on_pad_added(src, pad, *user_data):
 
     if name.startswith("audio"):
 
-        print("  creating audio decoding subqueue")
-        # TODO: implement audio mixing
-
-        add_and_link([ src,
-            new_element("opusparse"),
-            new_element("queue",{"max-size-time":100000000}),
-            new_element("opusdec", { "plc": True } ),
-            new_element("tee",{"allow-not-linked":True},myname=teename),
-            # FIXME: ah crap, the audiosink was stalling the pipeline the whole time
-            #new_element("autoaudiosink")
-        ])
+        clients[ssrc].create_audio_decoder(src,teename)
 
         # audio stream is last one in bundle, so if this pad has been added,
         # video streams are complete as well -> check mixer links in idle func
