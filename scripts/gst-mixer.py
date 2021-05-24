@@ -60,7 +60,7 @@ class Client:
 
         print("  creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
 
-        self.surface_mixer = new_element("compositor",myname="mixer_"+self.ssrc)
+        self.surface_mixer = new_element("compositor",{"background":"black"},myname="mixer_"+self.ssrc)
         self.muxer = new_element("mpegtsmux", {"alignment":7}, myname="muxer_"+self.ssrc)
 
         add_and_link([
