@@ -80,7 +80,9 @@ class Client:
     # create audio mixer for client
     def create_audio_mixer(self):
 
-        if self.audio_mixer != None or self.muxer == None:
+        if self.muxer == None:
+            return
+        if self.audio_mixer != None:
             return
 
         print("  creating audio mixer for client "+self.ssrc)
@@ -170,6 +172,8 @@ class Client:
 
 
 # helper function to link source tees to destination mixers
+# TODO: maybe use a dedicated dict instead of getattr?
+# TODO: should be a member function after all
 def link_streams_onehalf(src,dest,prefix,qparams):
     if not prefix+src.ssrc+"_"+dest.ssrc in mixer_links:
         print("  linking client "+src.ssrc+" to "+prefix+"mixer "+dest.ssrc)
@@ -330,15 +334,12 @@ def mixer_check_cb(*user_data):
         print("setting up mixers for new client "+ssrc)
 
         # create surface mixers where needed (but only if there are at least 2 clients)
-        # we need to check all clients, as the first client can't get a mixer on its own
         if len(clients) >= 2:
-            for c in clients:
-                clients[c].create_surface_mixer()
-                clients[c].create_audio_mixer()
+            clients[ssrc].create_surface_mixer()
+            clients[ssrc].create_audio_mixer()
 
         # add missing frontmixer links
-        for c in clients:
-            clients[c].link_to_front()
+        clients[ssrc].link_to_front()
 
         # add missing surface mixer links
         clients[ssrc].link_surface_streams()
