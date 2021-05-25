@@ -366,8 +366,8 @@ def on_ssrc_pad(src, pad, *user_data):
 
     # TODO: maybe use a specific fixed SSRC (e.g. 0x12345678) to exit/restart?
 
+    # link the rtcp_src pad to jitterbuffer
     if name.startswith("rtcp"):
-        # link the rtcp_src pad to jitterbuffer
         jb = pipeline.get_by_name(jbname)
         sinkpad = jb.request_pad(jb.get_pad_template("sink_rtcp"), None, None)
         pad.link(sinkpad)
@@ -390,7 +390,7 @@ def on_ssrc_pad(src, pad, *user_data):
     clients[ssrc] = Client(ssrc)
 
 
-# pad probe for reading address metadata
+# pad probe for reading IP address metadata
 def probe_callback(pad,info,pdata):
     buf = info.get_buffer()
     foo = GstNet.buffer_get_net_address_meta(buf)
@@ -411,18 +411,17 @@ def main(args):
 
     pipeline = Gst.Pipeline()
 
-    caps = Gst.Caps.from_string("application/x-rtp,media=video,clock-rate=90000,encoding-name=MP2T")
-
     # setup demuxer with callback for new ssrc
     rtpdemux = new_element("rtpssrcdemux")
     rtpdemux.connect("pad-added",on_ssrc_pad)
 
-    # setup udp src with pad probe to retrieve address metadata
     # TODO: make port configurable
-    udpsrc = new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } )
-
     # initial pipeline: udpsrc -> caps -> rtpdemux
-    add_and_link([ udpsrc, new_element("capsfilter", { "caps": caps } ), rtpdemux ])
+    add_and_link([
+        new_element("udpsrc", { "port": 5000, "retrieve-sender-address": True } ),
+        new_element("capsfilter", { "caps": Gst.Caps.from_string("application/x-rtp,media=video,clock-rate=90000,encoding-name=MP2T") } ),
+        rtpdemux
+    ])
 
     # kick things off
     pipeline.set_state(Gst.State.PLAYING)
