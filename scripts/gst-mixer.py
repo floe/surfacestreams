@@ -52,10 +52,10 @@ class Client:
         sinkpad.set_property("xpos",offsets[padnum][0])
         sinkpad.set_property("ypos",offsets[padnum][1])
 
-    # create surface mixer for client
-    def create_surface_mixer(self):
+    # create surface/audio mixers and output muxer for client
+    def create_mixers(self):
 
-        if self.surface_mixer != None:
+        if self.muxer != None or self.audio_mixer != None or self.surface_mixer != None:
             return
 
         print("    creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
@@ -76,15 +76,6 @@ class Client:
 
         # link frontstream tee to client-specific muxer
         link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
-
-    # TODO: merge into single create_mixers() function?
-    # create audio mixer for client
-    def create_audio_mixer(self):
-
-        if self.muxer == None:
-            return
-        if self.audio_mixer != None:
-            return
 
         print("    creating audio mixer for client "+self.ssrc)
 
@@ -341,9 +332,10 @@ def mixer_check_cb(*user_data):
         print("  setting up mixers for new client "+ssrc)
 
         # create surface mixers for _all_ clients (where still needed)
+        # needs to loop through all clients in case 2 or more clients
+        # appear simultaneously, otherwise there are no mixers to link to
         for c in clients:
-            clients[c].create_surface_mixer()
-            clients[c].create_audio_mixer()
+            clients[c].create_mixers()
 
         # add missing frontmixer links
         clients[ssrc].link_to_front()
@@ -382,7 +374,7 @@ def on_ssrc_pad(src, pad, *user_data):
     # add pad probe for buffer metadata (which contains sender IP address)
     pad.add_probe(Gst.PadProbeType.BUFFER, probe_callback, None)
 
-    # TODO: lower latency parameter?
+    # TODO: lower latency parameter? needs Gstreamer >= 1.18 or recompile...
     tsdemux = new_element("tsdemux",myname="tsd_"+ssrc)
     tsdemux.connect("pad-added",on_pad_added)
 
