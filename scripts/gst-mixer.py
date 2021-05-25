@@ -39,7 +39,7 @@ class Client:
         if self.front_linked or self.front_tee == None:
             return
 
-        print("  linking client "+self.ssrc+" to frontmixer")
+        print("    linking client "+self.ssrc+" to frontmixer")
         self.front_linked = True
 
         # request and link pads from tee and frontmixer
@@ -58,7 +58,7 @@ class Client:
         if self.surface_mixer != None:
             return
 
-        print("  creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
+        print("    creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
 
         self.surface_mixer = new_element("compositor",{"background":"black"},myname="mixer_"+self.ssrc)
         self.muxer = new_element("mpegtsmux", {"alignment":7}, myname="muxer_"+self.ssrc)
@@ -86,7 +86,7 @@ class Client:
         if self.audio_mixer != None:
             return
 
-        print("  creating audio mixer for client "+self.ssrc)
+        print("    creating audio mixer for client "+self.ssrc)
 
         self.audio_mixer = new_element("audiomixer",myname="audio_"+self.ssrc)
 
@@ -97,7 +97,18 @@ class Client:
             self.muxer
         ])
 
-    # FIXME: once again, b0rks if >= 2 clients already sending on startup
+    # helper function to link source tees to destination mixers
+    # TODO: maybe use a dedicated dict instead of getattr?
+    def link_streams_oneway(self,dest,prefix,qparams):
+        if not prefix+self.ssrc+"_"+dest.ssrc in mixer_links:
+            print("    linking client "+self.ssrc+" to "+prefix+"mixer "+dest.ssrc)
+            add_and_link([
+                getattr(self,prefix+"tee"),
+                new_element("queue",qparams),
+                getattr(dest,prefix+"mixer")
+            ])
+            mixer_links.append(prefix+self.ssrc+"_"+dest.ssrc)
+
     # link all other clients to this mixer, this client to other mixers
     def link_streams(self,prefix,qparams):
 
@@ -109,10 +120,10 @@ class Client:
             other = clients[c]
 
             # for every _other_ mixer, link my tee to that mixer
-            link_streams_onehalf(self,other,prefix,qparams)
+            self.link_streams_oneway(other,prefix,qparams)
 
             # for every _other_ tee, link that tee to my mixer
-            link_streams_onehalf(other,self,prefix,qparams)
+            other.link_streams_oneway(self,prefix,qparams)
 
     # link all other clients to this mixer, this client to other mixers
     def link_surface_streams(self):
@@ -171,19 +182,6 @@ class Client:
             self.audio_tee
         ])
 
-
-# helper function to link source tees to destination mixers
-# TODO: maybe use a dedicated dict instead of getattr?
-# TODO: should be a member function after all
-def link_streams_onehalf(src,dest,prefix,qparams):
-    if not prefix+src.ssrc+"_"+dest.ssrc in mixer_links:
-        print("  linking client "+src.ssrc+" to "+prefix+"mixer "+dest.ssrc)
-        add_and_link([
-            getattr(src,prefix+"tee"),
-            new_element("queue",qparams),
-            getattr(dest,prefix+"mixer")
-        ])
-        mixer_links.append(prefix+src.ssrc+"_"+dest.ssrc)
 
 
 pipeline = None
@@ -307,7 +305,7 @@ def create_frontmixer_queue():
     if frontmixer != None:
         return
 
-    print("creating frontmixer subqueue")
+    print("  creating frontmixer subqueue")
 
     frontmixer = new_element("compositor",myname="frontmixer")
     frontstream = new_element("tee",{"allow-not-linked":True},myname="frontstream")
@@ -327,17 +325,20 @@ def mixer_check_cb(*user_data):
 
     if len(new_client) > 0 and len(clients) >= 2:
 
+        print("new client(s), checking mixer links... ",end="")
+
         # only try to link things when all clients have all stream decoders in place
         for c in clients:
             if not clients[c].ready():
+                print("not all decoders in place yet, waiting.")
                 return True #GLib.SOURCE_CONTINUE
 
-        print("all client decoders ready:")
+        print("all client decoders ready.")
 
         create_frontmixer_queue()
 
         ssrc = new_client.pop(0)
-        print("setting up mixers for new client "+ssrc)
+        print("  setting up mixers for new client "+ssrc)
 
         # create surface mixers for _all_ clients (where still needed)
         for c in clients:
