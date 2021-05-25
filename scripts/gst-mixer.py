@@ -77,6 +77,7 @@ class Client:
         # link frontstream tee to client-specific muxer
         link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
 
+    # TODO: merge into single create_mixers() function?
     # create audio mixer for client
     def create_audio_mixer(self):
 
@@ -294,6 +295,7 @@ def on_pad_added(src, pad, *user_data):
         # audio stream is last one in bundle, so if this pad has been added,
         # video streams are complete as well -> check mixer links in idle func
         new_client.append(ssrc)
+        GLib.timeout_add(1000, mixer_check_cb, None)
 
 
 # create single mixer for front stream
@@ -323,20 +325,24 @@ def mixer_check_cb(*user_data):
 
     global new_client
 
-    if len(new_client) > 0:
+    if len(new_client) > 0 and len(clients) >= 2:
 
-        if not clients[new_client[0]].ready():
-            return GLib.SOURCE_CONTINUE
+        # only try to link things when all clients have all stream decoders in place
+        for c in clients:
+            if not clients[c].ready():
+                return True #GLib.SOURCE_CONTINUE
+
+        print("all client decoders ready:")
 
         create_frontmixer_queue()
 
         ssrc = new_client.pop(0)
         print("setting up mixers for new client "+ssrc)
 
-        # create surface mixers where needed (but only if there are at least 2 clients)
-        if len(clients) >= 2:
-            clients[ssrc].create_surface_mixer()
-            clients[ssrc].create_audio_mixer()
+        # create surface mixers for _all_ clients (where still needed)
+        for c in clients:
+            clients[c].create_surface_mixer()
+            clients[c].create_audio_mixer()
 
         # add missing frontmixer links
         clients[ssrc].link_to_front()
@@ -350,7 +356,7 @@ def mixer_check_cb(*user_data):
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
         Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug")
 
-    return GLib.SOURCE_CONTINUE #REMOVE
+    return len(new_client) > 0 # GLib.SOURCE_CONTINUE/_REMOVE
 
 
 # new ssrc coming in on UDP socket, i.e. new client
@@ -426,10 +432,6 @@ def main(args):
     # kick things off
     pipeline.set_state(Gst.State.PLAYING)
     loop = GLib.MainLoop()
-
-    # when no other events are pending, check the clients and link things if needed
-    # GLib.timeout_add_seconds(1, mixer_check_cb, None)
-    GLib.idle_add(mixer_check_cb, None)
 
     # listen for bus messages
     bus = pipeline.get_bus()
