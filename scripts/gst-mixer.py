@@ -58,8 +58,8 @@ class Client:
         if self.muxer != None or self.audio_mixer != None or self.surface_mixer != None:
             return
 
-        print("    creating surface mixer for client "+self.ssrc+", streaming to "+self.ip+":5000")
-
+        # setup surface mixer (with capsfilter to force H.264 Constrained Baseline)
+        print("    creating surface mixer for client "+self.ssrc)
         self.surface_mixer = new_element("compositor",{"background":"black"},myname="mixer_"+self.ssrc)
         self.muxer = new_element("mpegtsmux", {"alignment":7}, myname="muxer_"+self.ssrc)
 
@@ -69,24 +69,26 @@ class Client:
             new_element("queue",{"max-size-buffers":1}),
             new_element("x264enc",x264params),
             new_element("capsfilter",{"caps":Gst.Caps.from_string("video/x-h264,profile=baseline")}),
-            self.muxer,
-            new_element("rtpmp2tpay"),
-            new_element("udpsink",{"host":self.ip,"port":5000})
+            self.muxer
         ])
 
         # link frontstream tee to client-specific muxer
         link_request_pads(frontstream,"src_%u",self.muxer,"sink_%d")
 
+        # setup audio mixer and output UDP sink
         print("    creating audio mixer for client "+self.ssrc)
-
         self.audio_mixer = new_element("audiomixer",myname="audio_"+self.ssrc)
 
         add_and_link([
             self.audio_mixer,
             new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters?
             new_element("opusenc",{"bitrate":16000}),
-            self.muxer
+            self.muxer,
+            new_element("rtpmp2tpay"),
+            new_element("udpsink",{"host":self.ip,"port":5000})
         ])
+
+        print("    client "+self.ssrc+" output now streaming to "+self.ip+":5000")
 
     # helper function to link source tees to destination mixers
     # TODO: maybe use a dedicated dict instead of getattr?
