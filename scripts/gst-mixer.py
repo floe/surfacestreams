@@ -17,12 +17,11 @@ class Client:
 
     def __init__(self,ssrc):
         self.ip = ""
-        self.audio_mixer = None
+        self.mixers = {}
         self.audio_tee = None
         self.surface_tee = None
         self.front_tee = None
         self.front_linked = False
-        self.surface_mixer = None
         self.muxer = None
         self.ssrc = ssrc
 
@@ -55,16 +54,16 @@ class Client:
     # create surface/audio mixers and output muxer for client
     def create_mixers(self):
 
-        if self.muxer != None or self.audio_mixer != None or self.surface_mixer != None:
+        if self.muxer != None or "audio" in self.mixers or "surface" in self.mixers:
             return
 
         # setup surface mixer (with capsfilter to force H.264 Constrained Baseline)
         print("    creating surface mixer for client "+self.ssrc)
-        self.surface_mixer = new_element("compositor",{"background":"black"},myname="mixer_"+self.ssrc)
+        self.mixers["surface"] = new_element("compositor",{"background":"black"},myname="mixer_"+self.ssrc)
         self.muxer = new_element("mpegtsmux", {"alignment":7}, myname="muxer_"+self.ssrc)
 
         add_and_link([
-            self.surface_mixer,
+            self.mixers["surface"],
             new_element("videoconvert"),
             new_element("queue",{"max-size-buffers":1}),
             new_element("x264enc",x264params),
@@ -77,10 +76,10 @@ class Client:
 
         # setup audio mixer and output UDP sink
         print("    creating audio mixer for client "+self.ssrc)
-        self.audio_mixer = new_element("audiomixer",myname="audio_"+self.ssrc)
+        self.mixers["audio"] = new_element("audiomixer",myname="audio_"+self.ssrc)
 
         add_and_link([
-            self.audio_mixer,
+            self.mixers["audio"],
             new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters?
             new_element("opusenc",{"bitrate":16000}),
             self.muxer,
@@ -96,9 +95,9 @@ class Client:
         if not prefix+self.ssrc+"_"+dest.ssrc in mixer_links:
             print("    linking client "+self.ssrc+" to "+prefix+"mixer "+dest.ssrc)
             add_and_link([
-                getattr(self,prefix+"tee"),
+                getattr(self,prefix+"_tee"),
                 new_element("queue",qparams),
-                getattr(dest,prefix+"mixer")
+                dest.mixers[prefix]
             ])
             mixer_links.append(prefix+self.ssrc+"_"+dest.ssrc)
 
@@ -120,12 +119,12 @@ class Client:
 
     # link all other clients to this mixer, this client to other mixers
     def link_surface_streams(self):
-        self.link_streams("surface_",{"max-size-buffers":1})
+        self.link_streams("surface",{"max-size-buffers":1})
         return
 
     # link all other audio streams to this mixer, this client to other mixers
     def link_audio_streams(self):
-        self.link_streams("audio_",{"max-size-time":100000000})
+        self.link_streams("audio",{"max-size-time":100000000})
         return
 
     # create video decoding subqueue
@@ -333,7 +332,7 @@ def mixer_check_cb(*user_data):
         ssrc = new_client.pop(0)
         print("  setting up mixers for new client "+ssrc)
 
-        # create surface mixers for _all_ clients (where still needed)
+        # create surface/audio mixers for _all_ clients (where still needed)
         # needs to loop through all clients in case 2 or more clients
         # appear simultaneously, otherwise there are no mixers to link to
         for c in clients:
