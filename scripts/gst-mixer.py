@@ -83,6 +83,7 @@ class Client:
             new_element("queue",{"max-size-time":100000000}), # TODO: queue parameters?
             new_element("opusenc",{"bitrate":16000}),
             self.muxer,
+            new_element("queue",{"max-size-time":200000000}),
             new_element("rtpmp2tpay"),
             new_element("udpsink",{"host":self.ip,"port":5000})
         ])
@@ -285,6 +286,9 @@ def on_pad_added(src, pad, *user_data):
         # audio stream is last one in bundle, so if this pad has been added,
         # video streams are complete as well -> check mixer links in idle func
         new_client.append(ssrc)
+
+    # if multiple new clients appear simultaneously, only trigger the callback once
+    if len(new_client) == 1:
         GLib.timeout_add(1000, mixer_check_cb, None)
 
 
@@ -317,7 +321,7 @@ def mixer_check_cb(*user_data):
 
     if len(new_client) > 0 and len(clients) >= 2:
 
-        print("new client(s), checking mixer links... ",end="")
+        print("\nnew client(s), checking mixer links... ",end="")
 
         # only try to link things when all clients have all stream decoders in place
         for c in clients:
@@ -332,8 +336,8 @@ def mixer_check_cb(*user_data):
         ssrc = new_client.pop(0)
         print("  setting up mixers for new client "+ssrc)
 
-        # create surface/audio mixers for _all_ clients (where still needed)
-        # needs to loop through all clients in case 2 or more clients
+        # create surface/audio mixers for _all_ clients that don't have one yet
+        # needs to loop through all clients for the case where 2 or more clients
         # appear simultaneously, otherwise there are no mixers to link to
         for c in clients:
             clients[c].create_mixers()
@@ -350,7 +354,11 @@ def mixer_check_cb(*user_data):
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
         Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug")
 
-    return len(new_client) > 0 # GLib.SOURCE_CONTINUE/_REMOVE
+    # re-schedule the callback if there are more new clients to process
+    if len(new_client) > 0:
+        GLib.timeout_add(1000, mixer_check_cb, None)
+
+    return False # GLib.SOURCE_REMOVE
 
 
 # new ssrc coming in on UDP socket, i.e. new client
