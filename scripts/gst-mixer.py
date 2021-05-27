@@ -297,9 +297,9 @@ def on_pad_added(src, pad, *user_data):
         # video streams are complete as well -> check mixer links in idle func
         new_client.append(ssrc)
 
-    # if multiple new clients appear simultaneously, only trigger the callback once
-    if len(new_client) == 1:
-        GLib.timeout_add(1000, mixer_check_cb, None)
+        # if multiple new clients appear simultaneously, only trigger the callback once
+        if len(new_client) == 1:
+            GLib.timeout_add(1000, mixer_check_cb, None)
 
 
 # create single mixer for front stream
