@@ -374,7 +374,9 @@ def on_ssrc_pad(src, pad, *user_data):
     jbname = "rtpjb_"+ssrc
     print("ssrc pad added: "+name)
 
-    # TODO: maybe use a specific fixed SSRC (e.g. 0x12345678) to exit/restart?
+    # use a specific fixed SSRC to exit/restart
+    if ssrc == exit_ssrc:
+        pipeline.send_event(Gst.Event.new_eos())
 
     # link the rtcp_src pad to jitterbuffer
     if name.startswith("rtcp"):
