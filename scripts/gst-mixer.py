@@ -51,6 +51,7 @@ class Client:
         sinkpad.set_property("xpos",offsets[padnum][0])
         sinkpad.set_property("ypos",offsets[padnum][1])
 
+    # FIXME sigh... now it b0rks when a third client connects later :-(
     # create surface/audio mixers and output muxer for client
     def create_mixers(self):
 
@@ -101,6 +102,14 @@ class Client:
                 dest.mixers[prefix]
             ])
             mixer_links.append(prefix+self.ssrc+"_"+dest.ssrc)
+
+            # for the "main" stream (identified through special SSID),
+            # the destination mixer pad needs to have zorder = 0
+            # FIXME: feels like an ugly hack to do this here...
+            if prefix == "surface" and self.ssrc == "123":
+                print("    fixing zorder for main client")
+                sinkpads = dest.mixers[prefix].sinkpads
+                sinkpads[-1].set_property("zorder",0)
 
     # link all other clients to this mixer, this client to other mixers
     def link_streams(self,prefix,qparams):
