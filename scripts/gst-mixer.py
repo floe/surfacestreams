@@ -178,7 +178,7 @@ class Client:
         ])
 
 
-
+# global objects
 pipeline = None
 frontmixer = None
 frontstream = None
@@ -215,9 +215,6 @@ exit_ssrc = "0"
 # default parameters for x264enc components
 x264params = {"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}
 
-# default parameters for queues
-queueparams = { "max-size-time": 1000000000 }
-
 
 # conveniently create a new GStreamer element and set parameters
 def new_element(element_name,parameters={},myname=None):
@@ -244,19 +241,19 @@ def bus_call(bus, message, loop):
     t = message.type
     #print(message.src,t)
     if t == Gst.MessageType.EOS:
-        print("End-of-stream")
+        print("End-of-stream, quitting.\n")
         loop.quit()
     elif t == Gst.MessageType.ERROR:
         err, debug = message.parse_error()
-        print("Error: %s: %s" % (err, debug))
+        print("Error: %s: %s\n" % (err, debug))
         loop.quit()
     elif t == Gst.MessageType.WARNING:
         err, debug = message.parse_warning()
-        print("Warning: %s: %s" % (err, debug))
+        print("Warning: %s: %s\n" % (err, debug))
     elif t == Gst.MessageType.NEW_CLOCK:
-        print("New clock source selected.")
+        print("New clock source selected.\n")
     elif t == Gst.MessageType.CLOCK_LOST:
-        print("Clock lost!")
+        print("Clock lost!\n")
     return True
 
 # convenience function to link request pads
@@ -383,6 +380,7 @@ def on_ssrc_pad(src, pad, *user_data):
         jb = pipeline.get_by_name(jbname)
         sinkpad = jb.request_pad(jb.get_pad_template("sink_rtcp"), None, None)
         pad.link(sinkpad)
+        print(" ")
         return
 
     # add pad probe for buffer metadata (which contains sender IP address)
