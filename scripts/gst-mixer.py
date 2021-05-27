@@ -91,14 +91,17 @@ class Client:
 
     # helper function to link source tees to destination mixers
     def link_streams_oneway(self,dest,prefix,qparams):
-        if not prefix+self.ssrc+"_"+dest.ssrc in mixer_links:
+
+        linkname = prefix+self.ssrc+"_"+dest.ssrc
+        if not linkname in mixer_links:
+
             print("    linking client "+self.ssrc+" to "+prefix+"mixer "+dest.ssrc)
             add_and_link([
                 self.tees[prefix],
                 new_element("queue",qparams),
                 dest.mixers[prefix]
             ])
-            mixer_links.append(prefix+self.ssrc+"_"+dest.ssrc)
+            mixer_links.append(linkname)
 
             # for the "main" surface (identified through special SSRC),
             # the destination mixer pad needs to have zorder = 0
@@ -124,15 +127,10 @@ class Client:
             # for every _other_ tee, link that tee to my mixer
             other.link_streams_oneway(self,prefix,qparams)
 
-    # link all other clients to this mixer, this client to other mixers
-    def link_surface_streams(self):
+    # link all other clients to local mixer, this client to other mixers
+    def link_all_streams(self):
         self.link_streams("surface",{"max-size-buffers":1})
-        return
-
-    # link all other audio streams to this mixer, this client to other mixers
-    def link_audio_streams(self):
         self.link_streams("audio",{"max-size-time":100000000})
-        return
 
     # create video decoding subqueue
     def create_video_decoder(self,src,teename):
@@ -141,8 +139,12 @@ class Client:
 
         mytee = new_element("tee",{"allow-not-linked":True},myname=teename)
 
+        # store reference to tee in client
+        streamname = teename.split("_")[-1]
+        self.tees[streamname] = mytee
+
         alpha = None
-        if teename.endswith("surface"):
+        if streamname == "surface":
             alpha = new_element("alpha", { "method": "green" } )
 
         add_and_link([
@@ -159,12 +161,6 @@ class Client:
             #new_element("videoconvert"),
             #new_element("fpsdisplaysink",{"sync":False})
         ])
-
-        # store reference to tee in client
-        if teename.endswith("surface"):
-            self.tees["surface"] = mytee
-        elif teename.endswith("front"):
-            self.tees["front"] = mytee
 
     # create audio decoding subqueue
     def create_audio_decoder(self,src,teename):
@@ -355,11 +351,8 @@ def mixer_check_cb(*user_data):
         # add missing frontmixer links
         clients[ssrc].link_to_front()
 
-        # add missing surface mixer links
-        clients[ssrc].link_surface_streams()
-
-        # add missing audio stream links
-        clients[ssrc].link_audio_streams()
+        # add missing surface/audio mixer links
+        clients[ssrc].link_all_streams()
 
         # write out debug dot file (needs envvar GST_DEBUG_DUMP_DOT_DIR set)
         Gst.debug_bin_to_dot_file(pipeline,Gst.DebugGraphDetails(15),"debug")
