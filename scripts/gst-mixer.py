@@ -18,9 +18,7 @@ class Client:
     def __init__(self,ssrc):
         self.ip = ""
         self.mixers = {}
-        self.audio_tee = None
-        self.surface_tee = None
-        self.front_tee = None
+        self.tees = {}
         self.front_linked = False
         self.muxer = None
         self.ssrc = ssrc
@@ -30,19 +28,19 @@ class Client:
 
     # try to avoid race condition where idle loop runs before all streams for client have been added
     def ready(self):
-        return self.audio_tee != None and self.surface_tee != None and self.front_tee != None
+        return "audio" in self.tees and "surface" in self.tees and "front" in self.tees
 
     # link client to frontmixer
     def link_to_front(self):
 
-        if self.front_linked or self.front_tee == None:
+        if self.front_linked or not "front" in self.tees:
             return
 
         print("    linking client "+self.ssrc+" to frontmixer")
         self.front_linked = True
 
         # request and link pads from tee and frontmixer
-        sinkpad = link_request_pads(self.front_tee,"src_%u",frontmixer,"sink_%u")
+        sinkpad = link_request_pads(self.tees["front"],"src_%u",frontmixer,"sink_%u")
         #sinkpad.set_property("max-last-buffer-repeat",10000000000) # apparently not needed
 
         # set xpos/ypos properties on pad according to sequence number
@@ -92,21 +90,20 @@ class Client:
         print("    client "+self.ssrc+" output now streaming to "+self.ip+":5000")
 
     # helper function to link source tees to destination mixers
-    # TODO: maybe use a dedicated dict instead of getattr?
     def link_streams_oneway(self,dest,prefix,qparams):
         if not prefix+self.ssrc+"_"+dest.ssrc in mixer_links:
             print("    linking client "+self.ssrc+" to "+prefix+"mixer "+dest.ssrc)
             add_and_link([
-                getattr(self,prefix+"_tee"),
+                self.tees[prefix],
                 new_element("queue",qparams),
                 dest.mixers[prefix]
             ])
             mixer_links.append(prefix+self.ssrc+"_"+dest.ssrc)
 
-            # for the "main" stream (identified through special SSID),
+            # for the "main" surface (identified through special SSRC),
             # the destination mixer pad needs to have zorder = 0
             # FIXME: feels like an ugly hack to do this here...
-            if prefix == "surface" and self.ssrc == "123":
+            if prefix == "surface" and self.ssrc == main_ssrc:
                 print("    fixing zorder for main client")
                 sinkpads = dest.mixers[prefix].sinkpads
                 sinkpads[-1].set_property("zorder",0)
@@ -165,23 +162,23 @@ class Client:
 
         # store reference to tee in client
         if teename.endswith("surface"):
-            self.surface_tee = mytee
+            self.tees["surface"] = mytee
         elif teename.endswith("front"):
-            self.front_tee = mytee
+            self.tees["front"] = mytee
 
     # create audio decoding subqueue
     def create_audio_decoder(self,src,teename):
 
         print("  creating audio decoding subqueue")
 
-        self.audio_tee = new_element("tee",{"allow-not-linked":True},myname=teename)
+        self.tees["audio"] = new_element("tee",{"allow-not-linked":True},myname=teename)
 
         add_and_link([
             src,
             new_element("opusparse"),
             new_element("queue",{"max-size-time":100000000}),
             new_element("opusdec", { "plc": True } ),
-            self.audio_tee
+            self.tees["audio"]
         ])
 
 
@@ -214,6 +211,10 @@ offsets = [
     (640,  0),
     (  0,360)
 ]
+
+# magic SSRC values with special meaning (main stream, exit)
+main_ssrc = "123"
+exit_ssrc = "0"
 
 # default parameters for x264enc components
 x264params = {"noise-reduction":10000, "speed-preset":"ultrafast", "tune":"zerolatency", "byte-stream":True,"threads":2, "key-int-max":15}
