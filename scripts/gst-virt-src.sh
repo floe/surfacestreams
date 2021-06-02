@@ -1,0 +1,1 @@
+./virtcam 'videorate ! video/x-raw,width=1280,height=720,framerate=10/1 ! queue ! compositor name=comp sink_0::zorder=1 sink_1::zorder=0 ! videoconvert ! fpsdisplaysink  videotestsrc is-live=true do-timestamp=true ! video/x-raw,width=1280,height=720,framerate=10/1 ! queue ! comp.'

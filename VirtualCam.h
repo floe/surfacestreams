@@ -9,8 +9,9 @@ class VirtualCam: public Camera {
 
 		VirtualCam(const char* pipe);
 
+		void retrieve_frames();
 		void push_point(float x, float y);
-		void handle_key(const char* key);
+		//void handle_key(const char* key);
 
 };
 

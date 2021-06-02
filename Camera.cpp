@@ -169,11 +169,6 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
   gpipeline = gst_pipeline_new ("pipeline");
   appsrc = gst_element_factory_make ("appsrc", "source");
 
-  // attach event listener to appsrc pad
-  GstPad* srcpad = gst_element_get_static_pad (appsrc, "src");
-  gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
-  gst_pad_set_element_private( srcpad, (gpointer)this);
-
   // create pipeline from string
   const char* pipe_desc = gstpipe ? gstpipe : "videoconvert ! fpsdisplaysink sync=false";
   std::cout << "creating pipeline: " << pipe_desc << std::endl;
@@ -189,6 +184,13 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
     NULL), NULL);
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
   gst_element_link_many (appsrc, videosink, NULL);
+
+  // attach event listener to suitable src pad (either appsrc or videoconvert)
+  // FIXME: ugly hack, hardcoded element name
+  GstElement* display = gst_bin_get_by_name( (GstBin*)gpipeline, "videoconvert0" );
+  GstPad* srcpad = gst_element_get_static_pad (display?display:appsrc, "src");
+  gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
+  gst_pad_set_element_private( srcpad, (gpointer)this);
 
   /* setup appsrc */
   g_object_set (G_OBJECT (appsrc),
