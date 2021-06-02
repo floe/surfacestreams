@@ -6,6 +6,9 @@
 #include <PlaneModel.h>
 #include <gst/gst.h>
 
+// final transmitted width and height
+extern const int tw, th;
+
 class Camera {
 
 	public:
@@ -15,10 +18,10 @@ class Camera {
 		virtual void retrieve_frames();
 		virtual void remove_background();
 		virtual void send_buffer();
-		//void prepare_buffer(cv::Mat* input, int format);
 
-		void push_point(float x, float y);
-		void handle_key(const char* key);
+		virtual void push_point(float x, float y);
+		virtual void handle_key(const char* key);
+
 		void ransac_plane();
 
 		bool do_quit;
