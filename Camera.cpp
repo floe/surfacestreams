@@ -187,7 +187,7 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
   // attach event listener to suitable src pad (either appsrc or videoconvert)
   // FIXME: ugly hack, hardcoded element name
-  GstElement* display = gst_bin_get_by_name( (GstBin*)gpipeline, "videoconvert0" );
+  GstElement* display = gst_bin_get_by_name( (GstBin*)gpipeline, "display" );
   GstPad* srcpad = gst_element_get_static_pad (display?display:appsrc, "src");
   gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
   gst_pad_set_element_private( srcpad, (gpointer)this);

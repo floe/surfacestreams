@@ -1,4 +1,4 @@
-TARGETS=webcam sur40 k4a realsense kinect virtcam
+TARGETS=webcam k4a realsense kinect
 LIBS=gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 glib-2.0 opencv4
 
 CCFLAGS=-std=c++11 -O3 -Wall -ggdb -pg -I /usr/include/eigen3/ -I include/ $(shell pkg-config --cflags ${LIBS})
@@ -9,14 +9,8 @@ all: ${TARGETS}
 %.o: %.cpp
 	g++ -c -o $@ $< ${CCFLAGS}
 
-webcam: webcam.o Camera.o V4L2.o SUR40.o
+webcam: webcam.o Camera.o V4L2.o SUR40.o VirtualCam.o
 	g++ -o $@ $^ ${LDFLAGS}
-
-virtcam: virtcam.o Camera.o VirtualCam.o
-	g++ -o $@ $^ ${LDFLAGS}
-
-sur40: webcam
-	ln -s $^ $@
 
 realsense: realsense.cpp common.cpp
 	g++ -o $@ $^ ${CPPFLAGS} -lrealsense2
