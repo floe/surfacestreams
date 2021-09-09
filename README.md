@@ -26,15 +26,17 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
 ### Supported/tested devices:
 
   * Intel Realsense D415
-  * Microsoft Kinect v2
+  * Microsoft Kinect v2 (deprecated)
+  * Microsoft Kinect Azure
   * Samsung SUR40
   * Generic Video4Linux2 camera (without background subtraction)
 
 ### Library requirements:
 
-  * gstreamer-1.0
-  * opencv-3.4.1
-  * librealsense-2.11 (https://github.com/IntelRealSense/librealsense)
+  * gstreamer-1.16
+  * opencv-4.2.0
+  * libk4a-1.4.1
+  * librealsense2-2.49 (https://github.com/IntelRealSense/librealsense)
   * libfreenect-0.2-gstreamer (https://github.com/floe/libfreenect2/tree/gstreamer)
   
 ### License

@@ -12,8 +12,8 @@ all: ${TARGETS}
 webcam: webcam.o Camera.o V4L2.o SUR40.o VirtualCam.o
 	g++ -o $@ $^ ${LDFLAGS}
 
-realsense: realsense.cpp common.cpp
-	g++ -o $@ $^ ${CPPFLAGS} -lrealsense2
+realsense: rs.o Camera.o Realsense.o
+	g++ -o $@ $^ ${LDFLAGS} -lrealsense2
 
 k4a: k4a.o Camera.o KinectAzure.o
 	g++ -o $@ $^ ${LDFLAGS} -lk4a -lpthread
