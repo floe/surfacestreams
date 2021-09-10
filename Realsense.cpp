@@ -9,11 +9,11 @@
 
 Realsense::Realsense(const char* pipe):
   Camera(pipe,"RGBx",1280,720,1280,720),
+  // align parameter is the stream type to which we plan to align depth frames.
   align(RS2_STREAM_COLOR),
   depth_frame(nullptr),
   color_frame(nullptr)
 {
-
   // Create a Pipeline - this serves as a top-level API for streaming and processing frames
   rs2::config cfg;
 
@@ -35,16 +35,10 @@ Realsense::Realsense(const char* pipe):
     if (std::string(sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i)) == "High Density")
       sensor.set_option(RS2_OPTION_VISUAL_PRESET, i);
   }
-  // FIXME: still the right option name?
 
   // FIXME: set to max
   sensor.set_option(RS2_OPTION_LASER_POWER, 360);
   sensor.set_option(RS2_OPTION_DEPTH_UNITS, 0.0001);
-
-  // Create a rs2::align object.
-  // rs2::align allows us to perform alignment of depth frames to others frames
-  //The "align_to" is the stream type to which we plan to align depth frames.
-  //align = rs2::align(RS2_STREAM_COLOR);
 
   auto stream = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
   intrinsics = stream.get_intrinsics(); // Calibration data
