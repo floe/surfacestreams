@@ -7,7 +7,12 @@
 #include "Realsense.h"
 #include <iostream>
 
-Realsense::Realsense(const char* pipe): Camera(pipe,"RGBx",1280,720,1280,720) {
+Realsense::Realsense(const char* pipe):
+  Camera(pipe,"RGBx",1280,720,1280,720),
+  align(RS2_STREAM_COLOR),
+  depth_frame(nullptr),
+  color_frame(nullptr)
+{
 
   // Create a Pipeline - this serves as a top-level API for streaming and processing frames
   rs2::config cfg;
@@ -30,14 +35,16 @@ Realsense::Realsense(const char* pipe): Camera(pipe,"RGBx",1280,720,1280,720) {
     if (std::string(sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i)) == "High Density")
       sensor.set_option(RS2_OPTION_VISUAL_PRESET, i);
   }
+  // FIXME: still the right option name?
 
+  // FIXME: set to max
   sensor.set_option(RS2_OPTION_LASER_POWER, 360);
   sensor.set_option(RS2_OPTION_DEPTH_UNITS, 0.0001);
 
   // Create a rs2::align object.
   // rs2::align allows us to perform alignment of depth frames to others frames
   //The "align_to" is the stream type to which we plan to align depth frames.
-  align = rs2::align(RS2_STREAM_COLOR);
+  //align = rs2::align(RS2_STREAM_COLOR);
 
   auto stream = profile.get_stream(RS2_STREAM_DEPTH).as<rs2::video_stream_profile>();
   intrinsics = stream.get_intrinsics(); // Calibration data
@@ -45,17 +52,17 @@ Realsense::Realsense(const char* pipe): Camera(pipe,"RGBx",1280,720,1280,720) {
 
 void Realsense::get_3d_pt(int x, int y, float* out) {
     float px[2] = { (float)x, (float)y };
-    rs2_deproject_pixel_to_point( out, &intrinsics, px, depthp->get_distance(x,y) );
+    rs2_deproject_pixel_to_point( out, &intrinsics, px, depth_frame.get_distance(x,y) );
 }
 
-void Realsense::apply_to_color(rs2::depth_frame* depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame) {
+void Realsense::apply_to_color(rs2::depth_frame& depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame) {
 
   // blank out all remaining color pixels _below_ the plane
   for (int y = 0; y < ch; y++) {
     for (int x = 0; x < cw; x++) {
 
       float pt[3]; float px[2] = { (float)x, (float)y };
-      rs2_deproject_pixel_to_point( pt, intr, px, depth->get_distance(x,y) );
+      rs2_deproject_pixel_to_point( pt, intr, px, depth_frame.get_distance(x,y) );
       if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
       Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
 
@@ -78,22 +85,21 @@ void Realsense::retrieve_frames() {
     color_frame = processed.first(RS2_STREAM_COLOR);
 
     // Try to get a frame of a depth image
-    depth = processed.get_depth_frame(); 
-    depthp = &depth;
+    depth_frame = processed.get_depth_frame(); 
 }
 
 void Realsense::remove_background() {
 
     // Get the depth frame's dimensions
-    int width = depth.get_width();
-    int height = depth.get_height();
+    int width = depth_frame.get_width();
+    int height = depth_frame.get_height();
 
     uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
-		apply_to_color(&depth,&intrinsics,distance,&plane,p_other_frame);
+		apply_to_color(depth_frame,&intrinsics,distance,&plane,p_other_frame);
 
     // Query the distance from the camera to the object in the center of the image
-    float dist_to_center = depth.get_distance(width / 2, height / 2);
+    float dist_to_center = depth_frame.get_distance(width / 2, height / 2);
     
     // Print the distance 
     std::cout << "The camera is facing an object " << dist_to_center << " meters away \r";

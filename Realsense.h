@@ -18,14 +18,15 @@ class Realsense: public Camera {
 
 	private:
 
-		void apply_to_color(rs2::depth_frame* depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame);
+		void apply_to_color(rs2::depth_frame& depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame);
 
-		rs2::depth_frame* depthp;
+		rs2::align align;
+
+		rs2::depth_frame depth_frame;
+		rs2::video_frame color_frame;
+
 		rs2_intrinsics intrinsics;
     rs2::pipeline pipeline;
-		rs2::align align;
-		rs2::video_frame color_frame;
-		rs2::depth_frame depth;
 };
 
 #endif // _REALSENSE_H_
