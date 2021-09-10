@@ -38,7 +38,7 @@ class Camera {
 
 		cv::Mat calcPerspective();
 
-		float distance; // plane segmentation distance
+		float distance; // plane segmentation distance in cm
 		cv::Mat im; // identity matrix
 		cv::Mat pm; // perspective matrix
 

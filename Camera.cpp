@@ -157,7 +157,7 @@ void Camera::handle_key(const char* key) {
       if (key == std::string( "plus")) distance += 0.2;
       if (key == std::string("minus")) distance -= 0.2;
 
-      std::cout << "current distance: " << distance << std::endl;
+      std::cout << "current plane distance: " << distance << " cm " << std::endl;
 }
 
 void Camera::gstreamer_init(const char* type, const char* gstpipe) {
