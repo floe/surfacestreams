@@ -1,4 +1,4 @@
-TARGETS=webcam k4a realsense kinect
+TARGETS=webcam k4a realsense #kinect
 LIBS=gstreamer-1.0 gstreamer-app-1.0 gstreamer-video-1.0 glib-2.0 opencv4
 
 CCFLAGS=-std=c++11 -O3 -Wall -ggdb -pg -I /usr/include/eigen3/ -I include/ $(shell pkg-config --cflags ${LIBS})
