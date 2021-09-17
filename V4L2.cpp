@@ -5,7 +5,7 @@
 
 V4L2::V4L2(const char* pipe, int devnum, int cw, int ch):
   Camera(pipe,"BGR",cw,ch),
-  cap(devnum+cv::CAP_V4L2)
+  cap(devnum,cv::CAP_V4L2)
 {
   if (!cap.isOpened())  // check if succeeded to connect to the camera
     throw std::runtime_error("Unable to open V4L2 camera device.");
