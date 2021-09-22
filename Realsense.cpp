@@ -90,7 +90,7 @@ void Realsense::remove_background() {
 
     uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
-		apply_to_color(depth_frame,&intrinsics,distance,&plane,p_other_frame);
+		if (do_filter) apply_to_color(depth_frame,&intrinsics,distance,&plane,p_other_frame);
 
     // Query the distance from the camera to the object in the center of the image
     float dist_to_center = depth_frame.get_distance(width / 2, height / 2);
