@@ -33,8 +33,8 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
 
 ### Library requirements:
 
-  * gstreamer-1.16
-  * opencv-4.2.0
+  * gstreamer-1.16 (libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev)
+  * opencv-4.2.0 (libopencv-dev libeigen3-dev)
   * libk4a-1.4.1
   * librealsense2-2.49 (https://github.com/IntelRealSense/librealsense)
   * libfreenect-0.2-gstreamer (https://github.com/floe/libfreenect2/tree/gstreamer)
