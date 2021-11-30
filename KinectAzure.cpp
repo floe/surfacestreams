@@ -6,7 +6,7 @@
 
 #include "KinectAzure.h"
 
-KinectAzure::KinectAzure(const char* pipe): Camera(pipe,"BGRA",1280,720,1024,1024) {
+KinectAzure::KinectAzure(const char* pipe): Camera(pipe,"BGRA",1280,720,1024,1024), scale(10) {
 
 	const uint32_t deviceCount = k4a::device::get_installed_count();
 	if (deviceCount == 0) 
@@ -95,7 +95,7 @@ void KinectAzure::blank_depth(int ystart, int yend) {
 					if (!res) { index += 1; continue; }
 
 					Eigen::Vector3f point = { out[0], out[1], out[2] };
-					if ((plane.n.dot(point) - plane.d) > -distance*10)
+					if ((plane.n.dot(point) - plane.d) > -distance*scale)
 						depthData[index] = 0;
 
 					index += 1;

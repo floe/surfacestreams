@@ -13,7 +13,7 @@ class Camera {
 
 	public:
 
-		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0);
+		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0, float _scale = 0.0f);
 
 		virtual void retrieve_frames();
 		virtual void remove_background();
@@ -39,6 +39,7 @@ class Camera {
 		cv::Mat calcPerspective();
 
 		float distance; // plane segmentation distance in cm
+		float scale; // scale from distance in cm to camera units
 		cv::Mat im; // identity matrix
 		cv::Mat pm; // perspective matrix
 

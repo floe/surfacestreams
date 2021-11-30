@@ -8,7 +8,7 @@
 #include <iostream>
 
 Realsense::Realsense(const char* pipe):
-  Camera(pipe,"RGBx",1280,720,1280,720),
+  Camera(pipe,"RGBx",1280,720,1280,720,0.01f),
   // align parameter is the stream type to which we plan to align depth frames.
   align(RS2_STREAM_COLOR),
   depth_frame(nullptr),
@@ -60,7 +60,7 @@ void Realsense::apply_to_color(rs2::depth_frame& depth, rs2_intrinsics* intr, fl
       if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
       Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
 
-      if ((plane->n.dot(point) - plane->d) > -distance*0.01) {
+      if ((plane->n.dot(point) - plane->d) > -distance*scale) {
         int index = y*cw+x;
         ((uint32_t*)p_other_frame)[index] = 0x0000FF00;
       }
@@ -90,7 +90,7 @@ void Realsense::remove_background() {
 
     uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
-		if (do_filter) apply_to_color(depth_frame,&intrinsics,distance,&plane,p_other_frame);
+    if (do_filter) apply_to_color(depth_frame,&intrinsics,distance,&plane,p_other_frame);
 
     // Query the distance from the camera to the object in the center of the image
     float dist_to_center = depth_frame.get_distance(width / 2, height / 2);

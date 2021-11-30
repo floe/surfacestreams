@@ -18,8 +18,8 @@ using namespace cv;
 // final transmitted image dimensions
 const int tw = 1280, th = 720;
 
-Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh) {
-  dw = _dw; dh = _dh; cw = _cw; ch = _ch;
+Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale) {
+  dw = _dw; dh = _dh; cw = _cw; ch = _ch; scale = _scale;
   im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
   cv::FileStorage file("perspective.xml", cv::FileStorage::READ);
   file["perspective"] >> pm;
@@ -77,7 +77,7 @@ void Camera::ransac_plane() {
   }
 
   std::cout << "3D point count: " << points.size() << std::endl;
-  plane = ransac<PlaneModel<float>>( points, distance*10, 200 ); // FIXME distance multiplier is device-specific
+  plane = ransac<PlaneModel<float>>( points, distance*scale, 200 );
   if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
   std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
 }
