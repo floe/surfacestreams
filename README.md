@@ -1,4 +1,4 @@
-# SurfaceStreams
+# SurfaceCast
 
 Sends background-subtracted depth camera video via ![GStreamer](https://gstreamer.freedesktop.org/) (left: raw video, center: rectified, right: background removed).
 
@@ -26,29 +26,26 @@ By default, all executables will run the GStreamer pipeline `videoconvert ! fpsd
 ### Supported/tested devices:
 
   * Intel Realsense D415
-  * Microsoft Kinect v2 (deprecated)
   * Microsoft Kinect Azure
   * Samsung SUR40
   * Generic Video4Linux2 camera (without background subtraction)
+  * Microsoft Kinect v2 (deprecated)
+
 
 ### Library requirements:
 
   * gstreamer-1.16 (libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev)
   * opencv-4.2.0 (libopencv-dev libeigen3-dev)
   * libk4a-1.4.1
-  * librealsense2-2.49 (https://github.com/IntelRealSense/librealsense)
-  * libfreenect-0.2-gstreamer (https://github.com/floe/libfreenect2/tree/gstreamer)
+  * librealsense2-2.50 (https://github.com/IntelRealSense/librealsense)
+  * libfreenect-0.2-gstreamer (deprecated) (https://github.com/floe/libfreenect2/tree/gstreamer)
   
 ### License
 
-SurfaceStreams is licensed under the GNU Lesser General Public License v3.0.
+SurfaceCast is licensed under the GNU Lesser General Public License v3.0.
 
 ### random notes
 
-  * UDP ports:
-    * 500x: surface stream, 1280x720, MJPEG in GStreamer buffers
-    * 600x: front cam stream, 1280x720, MJPEG in GStreamer buffers
-    * 700x: raw audio stream in GStreamer buffers
   * camera USB bandwidth allocation is a problem
     * needs uvcvideo quirks parameter (see `uvcvideo.conf`) and limited FPS
     * check with: `$ cat /sys/kernel/debug/usb/devices | grep "B: "`
