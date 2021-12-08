@@ -8,4 +8,5 @@ if [ "$CAM" = "" ] ; then
 	CAM="null"
 fi
 
-../webcam $MODE $CAM "videoconvert ! video/x-raw,format=YV12,width=1280,height=720 ! v4l2sink device=/dev/video10"
+#../webcam $MODE $CAM "videoconvert ! video/x-raw,format=RGB,width=1280,height=720 ! v4l2sink device=/dev/video20"
+../realsense "videoconvert ! video/x-raw,format=RGB,width=1280,height=720 ! v4l2sink device=/dev/video20"

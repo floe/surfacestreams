@@ -26,7 +26,7 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   if (!file.isOpened()) pm = im;
 
   gstreamer_init(_type,_pipe);
-  find_plane = false;
+  find_plane = true;
   do_filter = true;
   do_quit = false;
   distance = 1.0f; // in cm

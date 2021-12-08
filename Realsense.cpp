@@ -31,7 +31,7 @@ Realsense::Realsense(const char* pipe):
   auto sensor = profile.get_device().first<rs2::depth_sensor>();
   auto range = sensor.get_option_range(RS2_OPTION_VISUAL_PRESET);
   for (auto i = range.min; i < range.max; i += range.step) {
-    std::cout << sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i) << std::endl;
+    //std::cout << sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i) << std::endl;
     if (std::string(sensor.get_option_value_description(RS2_OPTION_VISUAL_PRESET, i)) == "High Density")
       sensor.set_option(RS2_OPTION_VISUAL_PRESET, i);
   }
