@@ -31,13 +31,7 @@
 *.out
 *.app
 
-webcam
-virtcam
-realsense
-kinect
-sur40
-k4a
-
+surfacecast
 *.dot
 
 config.xml
