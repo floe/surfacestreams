@@ -49,18 +49,20 @@ void Realsense::get_3d_pt(int x, int y, float* out) {
     rs2_deproject_pixel_to_point( out, &intrinsics, px, depth_frame.get_distance(x,y) );
 }
 
-void Realsense::apply_to_color(rs2::depth_frame& depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame) {
+void Realsense::remove_background(int start, int end) {
+
+  uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
   // blank out all remaining color pixels _below_ the plane
-  for (int y = 0; y < ch; y++) {
+  for (int y = start; y < end; y++) {
     for (int x = 0; x < cw; x++) {
 
       float pt[3]; float px[2] = { (float)x, (float)y };
-      rs2_deproject_pixel_to_point( pt, intr, px, depth_frame.get_distance(x,y) );
+      rs2_deproject_pixel_to_point( pt, &intrinsics, px, depth_frame.get_distance(x,y) );
       if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
       Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
 
-      if ((plane->n.dot(point) - plane->d) > -distance*scale) {
+      if ((plane.n.dot(point) - plane.d) > -distance*scale) {
         int index = y*cw+x;
         ((uint32_t*)p_other_frame)[index] = 0x0000FF00;
       }
@@ -88,9 +90,7 @@ void Realsense::remove_background() {
     int width = depth_frame.get_width();
     int height = depth_frame.get_height();
 
-    uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
-
-    if (do_filter) apply_to_color(depth_frame,&intrinsics,distance,&plane,p_other_frame);
+    if (do_filter) Camera::remove_background();
 
     // Query the distance from the camera to the object in the center of the image
     float dist_to_center = depth_frame.get_distance(width / 2, height / 2);

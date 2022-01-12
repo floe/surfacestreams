@@ -14,11 +14,9 @@ class Realsense: public Camera {
 		void retrieve_frames();
 		void remove_background();
 		void get_3d_pt(int x, int y, float* out);
-		void blank_depth(int ystart, int yend);
+		void remove_background(int ystart, int yend);
 
 	private:
-
-		void apply_to_color(rs2::depth_frame& depth, rs2_intrinsics* intr, float distance, PlaneModel<float>* plane, uint8_t* p_other_frame);
 
 		rs2::align align;
 
