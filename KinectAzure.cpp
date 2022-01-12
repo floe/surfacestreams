@@ -54,7 +54,7 @@ void KinectAzure::remove_background() {
 	map_to_color();
 }
 
-void KinectAzure::remove_background(int ystart, int yend) {
+void KinectAzure::remove_background(float ystart, float yend) {
 
 			// FIXME: this function eats up an inordinate amount of processing time, parallelize?
 			int index = ystart*dw;
@@ -64,7 +64,7 @@ void KinectAzure::remove_background(int ystart, int yend) {
 
 			// in the original depth image, zero all pixels with invalid data or below the plane
 			uint16_t* depthData = (uint16_t*)depthImage.get_buffer();
-			for (int y = ystart; y < yend; ++y) {
+			for (int y = round(ystart*dh); y < round(yend*dh); ++y) {
 				for (int x = 0; x < dw; ++x) {
 
 					dv = depthData[index];

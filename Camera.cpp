@@ -247,16 +247,16 @@ void Camera::retrieve_frames() {
   // TODO: override this in any camera subclass
 }
 
-void Camera::remove_background(int start, int end ) {
+void Camera::remove_background(float start, float end) {
   // TODO: override this in any camera subclass
 }
 
 void Camera::remove_background() {
 	// TODO: hardcoded for 2 threads
-	thread_info ti = { this, 0, dh/2 };
+	thread_info ti = { this, 0.0, 0.5 };
 	pthread_t thread;
 	// FIXME: threadpool would be nicer
 	pthread_create(&thread,nullptr,&thread_helper,(void*)&ti);
-	remove_background(dh/2+1,dh);
+	remove_background(0.5,1.0);
 	pthread_join(thread,nullptr);
 }

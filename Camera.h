@@ -18,7 +18,7 @@ class Camera {
 		virtual void retrieve_frames();
 		virtual void remove_background();
 		virtual void send_buffer();
-		virtual void remove_background(int start, int end);
+		virtual void remove_background(float start, float end);
 
 		virtual void push_point(float x, float y);
 		virtual void handle_key(const char* key);
@@ -58,7 +58,7 @@ class Camera {
 
 typedef struct {
 	Camera* obj;
-	int start,end;
+	float start,end;
 } thread_info;
 
 #endif // _CAMERA_H_

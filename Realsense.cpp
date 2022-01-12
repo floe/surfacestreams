@@ -49,12 +49,12 @@ void Realsense::get_3d_pt(int x, int y, float* out) {
     rs2_deproject_pixel_to_point( out, &intrinsics, px, depth_frame.get_distance(x,y) );
 }
 
-void Realsense::remove_background(int start, int end) {
+void Realsense::remove_background(float start, float end) {
 
   uint8_t* p_other_frame = reinterpret_cast<uint8_t*>(const_cast<void*>(color_frame.get_data()));
 
   // blank out all remaining color pixels _below_ the plane
-  for (int y = start; y < end; y++) {
+  for (int y = round(start*ch); y < round(end*ch); y++) {
     for (int x = 0; x < cw; x++) {
 
       float pt[3]; float px[2] = { (float)x, (float)y };

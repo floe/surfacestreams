@@ -13,7 +13,7 @@ class KinectAzure: public Camera {
 		void retrieve_frames();
 		void remove_background();
 		void get_3d_pt(int x, int y, float* out);
-		void remove_background(int ystart, int yend);
+		void remove_background(float ystart, float yend);
 
 	private:
 
