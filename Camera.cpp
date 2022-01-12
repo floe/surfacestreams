@@ -26,7 +26,7 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   if (!file.isOpened()) pm = im;
 
   gstreamer_init(_type,_pipe);
-  find_plane = true;
+  find_plane = false;
   do_filter = true;
   do_quit = false;
   distance = 1.0f; // in cm
@@ -237,8 +237,26 @@ void Camera::gstreamer_cleanup() {
   gst_object_unref (GST_OBJECT (gpipeline));
 }
 
+void* thread_helper(void* arg) {
+	thread_info* ti = (thread_info*)arg;
+	ti->obj->remove_background(ti->start,ti->end);
+	return nullptr;
+}
+
 void Camera::retrieve_frames() {
+  // TODO: override this in any camera subclass
+}
+
+void Camera::remove_background(int start, int end ) {
+  // TODO: override this in any camera subclass
 }
 
 void Camera::remove_background() {
+	// TODO: hardcoded for 2 threads
+	thread_info ti = { this, 0, dh/2 };
+	pthread_t thread;
+	// FIXME: threadpool would be nicer
+	pthread_create(&thread,nullptr,&thread_helper,(void*)&ti);
+	remove_background(dh/2+1,dh);
+	pthread_join(thread,nullptr);
 }

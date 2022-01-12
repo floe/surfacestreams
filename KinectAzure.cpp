@@ -48,31 +48,13 @@ void KinectAzure::retrieve_frames() {
 	}
 }
 
-typedef struct {
-	KinectAzure* obj;
-	int start,end;
-} thread_info;
-
-void* thread_helper(void* arg) {
-	thread_info* ti = (thread_info*)arg;
-	ti->obj->blank_depth(ti->start,ti->end);
-	return nullptr;
-}
-
 void KinectAzure::remove_background() {
-
 	if (depthImage.handle() == nullptr) return;
-
-	thread_info ti = { this, 0, dh/2 };
-	pthread_t thread;
-	pthread_create(&thread,nullptr,&thread_helper,(void*)&ti);
-	blank_depth(dh/2+1,dh);
-	pthread_join(thread,nullptr);
+	Camera::remove_background();
 	map_to_color();
-
 }
 
-void KinectAzure::blank_depth(int ystart, int yend) {
+void KinectAzure::remove_background(int ystart, int yend) {
 
 			// FIXME: this function eats up an inordinate amount of processing time, parallelize?
 			int index = ystart*dw;
