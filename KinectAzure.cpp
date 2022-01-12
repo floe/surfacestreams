@@ -56,8 +56,7 @@ void KinectAzure::remove_background() {
 
 void KinectAzure::remove_background(float ystart, float yend) {
 
-			// FIXME: this function eats up an inordinate amount of processing time, parallelize?
-			int index = ystart*dw;
+			int index = ystart*dh*dw;
 			uint16_t dv = 0;
 			float out[3];
 			k4a_float2_t pt;
