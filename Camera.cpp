@@ -10,6 +10,7 @@
 //
 
 #include <opencv2/core/core.hpp>
+#include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
@@ -21,15 +22,24 @@ const int tw = 1280, th = 720;
 Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale) {
   dw = _dw; dh = _dh; cw = _cw; ch = _ch; scale = _scale;
   im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
-  cv::FileStorage file("perspective.xml", cv::FileStorage::READ);
-  file["perspective"] >> pm;
-  if (!file.isOpened()) pm = im;
+
+  cv::FileStorage file("config.xml", cv::FileStorage::READ);
+  if (!file.isOpened()) {
+    pm = im;
+    distance = 1.0f; // in cm
+  } else {
+    Mat tmp;
+    file["perspective"] >> pm;
+    file["distance"] >> distance;
+    file["plane_d"] >> plane.d;
+    file["plane_n"] >> tmp;
+    cv::cv2eigen(tmp,plane.n);
+  }
 
   gstreamer_init(_type,_pipe);
   find_plane = false;
   do_filter = true;
   do_quit = false;
-  distance = 1.0f; // in cm
 }
 
 Mat Camera::calcPerspective() {
@@ -43,8 +53,12 @@ Mat Camera::calcPerspective() {
 
   result = getPerspectiveTransform(src,dst);
 
-  cv::FileStorage file("perspective.xml", cv::FileStorage::WRITE);
+  cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
+  Mat tmp; cv::eigen2cv(plane.n,tmp);
   file << "perspective" << result;
+  file << "distance" << distance;
+  file << "plane_d" << plane.d;
+  file << "plane_n" << tmp;
 
   src.clear();
   dst.clear();
