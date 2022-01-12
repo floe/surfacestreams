@@ -231,6 +231,8 @@ void Camera::send_buffer() {
   Mat* output = new Mat(th,tw,input.type());
   warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
 
+  for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10);
+
   guint size = output->total()*output->elemSize();
   gpointer data = output->data;
   void* frame = output;

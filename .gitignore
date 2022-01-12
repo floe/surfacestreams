@@ -40,6 +40,6 @@ k4a
 
 *.dot
 
-perspective.xml
+config.xml
 imgui.ini
 .~lock.*
