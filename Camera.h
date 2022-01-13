@@ -38,6 +38,7 @@ class Camera {
 		virtual void get_3d_pt(int x, int y, float* out);
 
 		cv::Mat calcPerspective();
+		void saveConfig();
 
 		float distance; // plane segmentation distance in cm
 		float scale; // scale from distance in cm to camera units

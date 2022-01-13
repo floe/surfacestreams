@@ -53,18 +53,25 @@ Mat Camera::calcPerspective() {
 
   result = getPerspectiveTransform(src,dst);
 
-  cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
-  Mat tmp; cv::eigen2cv(plane.n,tmp);
-  file << "perspective" << result;
-  file << "distance" << distance;
-  file << "plane_d" << plane.d;
-  file << "plane_n" << tmp;
-
   src.clear();
   dst.clear();
 
   return result;
 }
+
+void Camera::saveConfig() {
+
+  cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
+  Mat tmp; cv::eigen2cv(plane.n,tmp);
+
+  file << "perspective" << pm;
+  file << "distance" << distance;
+  file << "plane_d" << plane.d;
+  file << "plane_n" << tmp;
+
+  std::cout << "configuration saved to config.xml" << std::endl;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -166,6 +173,10 @@ void Camera::handle_key(const char* key) {
       // quit
       if (key == std::string("q"))
         do_quit = true;
+
+      // save
+      if (key == std::string("s"))
+        saveConfig();
 
       // change plane distance threshold
       if (key == std::string( "plus")) distance += 0.2;
