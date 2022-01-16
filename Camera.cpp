@@ -106,8 +106,10 @@ void Camera::ransac_plane() {
 void Camera::push_point(float x, float y) {
   src.push_back(Point2f((float)cw*x/(float)tw,(float)ch*y/(float)th));
   if (src.size() == 4) {
-    Mat r = calcPerspective();
-    pm = r;
+    pm = calcPerspective();
+    std::cout << "Perspective transform matrix: ";
+    for (auto el: cv::Mat_<float>(pm.inv())) std::cout << el << ",";
+    std::cout << std::endl;
   }
 }
 
