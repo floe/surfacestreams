@@ -1,6 +1,9 @@
 # Logitech Quickcam Sphere
 KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0994", ATTR{index}=="0", SYMLINK+="video-face"
 
+# Realtek Laptop HD Webcam
+KERNEL=="video*", ATTRS{idVendor}=="0bda", ATTRS{idProduct}=="5511", ATTR{index}=="0", SYMLINK+="video-face"
+
 # Logitech C270
 KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", ATTR{index}=="0", SYMLINK+="video-face"
 
