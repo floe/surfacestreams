@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << "\nSurfaceCast v0.2.0 - https://github.com/floe/surfacecast\n" << std::endl;
 
-  if (argc < 2) {
+  if (argc < 3) {
     std::cout << "usage: surfacecast <camtype> <videodev> [\"gstreamer_pipeline\"]\n" << std::endl;
     std::cout << "available camera types:\n" << std::endl;
     std::cout << "       v4l2 </dev/videoX> - standard V4L2 device (webcam)" << std::endl;
