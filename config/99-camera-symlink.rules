@@ -1,11 +1,11 @@
 # Logitech Quickcam Sphere
-KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0994", SYMLINK+="video-face"
+KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0994", ATTR{index}=="0", SYMLINK+="video-face"
 
 # Logitech C270
-KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", SYMLINK+="video-face"
+KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", ATTR{index}=="0", SYMLINK+="video-face"
 
 # Logitech C920
-KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="082d", SYMLINK+="video-surf"
+KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="082d", ATTR{index}=="0", SYMLINK+="video-surf"
 
 # Samsung SUR40
-KERNEL=="video*", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0775", SYMLINK+="video-surf"
+KERNEL=="video*", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0775", ATTR{index}=="0", SYMLINK+="video-surf"
