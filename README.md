@@ -26,9 +26,10 @@ By default, 1280x720 RGB video data will be sent to the GStreamer pipeline `vide
   * `f` - toggle filtering of the background plane
   * `+` - increase the tolerance wrt background by 0.2cm
   * `-` - decrease the tolerance wrt background by 0.2cm
+  * `s` - save current parameters (tolerance, perspective, plane) to `config.xml`
   * `q` - exit program
 
-After the perspective calibration has been completed, all current parameters (tolerance, perspective transform, plane parameters) are saved to `config.xml` in current directory; if this file is present at startup, parameters are re-initialized with saved values.
+If `config.xml` is present in the working directory at startup, parameters are re-initialized with saved values.
 
 ### Supported/tested devices:
 
