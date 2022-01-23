@@ -26,21 +26,5 @@ all: ${TARGETS}
 surfacecast: surfacecast.o Camera.o V4L2.o SUR40.o VirtualCam.o ${OBJECTS}
 	g++ -o $@ $^ ${LDFLAGS}
 
-realsense: rs.o Camera.o Realsense.o
-	g++ -o $@ $^ ${LDFLAGS} -lrealsense2
-
-k4a: k4a.o Camera.o KinectAzure.o
-	g++ -o $@ $^ ${LDFLAGS} -lk4a -lpthread
-
-kinect: libfreenect2 libfreenect2/examples/Protonect.cpp
-	make -C libfreenect2/build/
-	cp libfreenect2/build/bin/Protonect ./kinect
-
-libfreenect2: libfreenect2/CMakeLists.txt
-	git submodule update --init
-	cd libfreenect2 && mkdir -p build
-	cd libfreenect2/build && cmake .. -DENABLE_CXX11=1
-	touch libfreenect2/
-
 clean:
 	-rm *.o ${TARGETS}
