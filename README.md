@@ -10,11 +10,13 @@ This tool records live video of a flat surface with a depth camera, automaticall
 
 ### Usage
 
-Example 1 - debug/config view of plain webcam: `./surfacecast v4l2 /dev/video0`
+**Example 1** - debug/config view of plain webcam: `./surfacecast v4l2 /dev/video0`
 
-Example 2 - stream Realsense to ![virtual camera device](https://github.com/umlaeute/v4l2loopback): `./surfacecast realsense 0 "videoconvert ! video/x-raw,format=RGB,width=1280,height=720 ! v4l2sink device=/dev/video20"` (mind the quotes around the GStreamer pipeline)
+**Example 2** - stream Realsense to ![virtual camera device](https://github.com/umlaeute/v4l2loopback): `./surfacecast realsense 0 "videoconvert ! video/x-raw,format=RGB,width=1280,height=720 ! v4l2sink device=/dev/video20"` (mind the quotes around the GStreamer pipeline)
 
-Example 3 - simple network stream of Kinect Azure: `./surfacecast k4a 0 "jpegenc ! rtpjpegpay ! udpsink host=..."`
+For setting up the virtual camera, install `v4l2loopback-dkms`, copy `config/modules.conf` to `/etc/modules-load.d/` and `config/v4l2loopback.conf` to `/etc/modprobe.d/`, and run `sudo modprobe v4l2loopback`.
+
+**Example 3** - simple network stream of Kinect Azure: `./surfacecast k4a 0 "jpegenc ! rtpjpegpay ! udpsink host=..."`
 
 By default, 1280x720 RGB video data will be sent to the GStreamer pipeline `videoconvert ! fpsdisplaysink` to provide a debug view. If you want any other pipeline, pass it as a single quoted commandline parameter. In the debug view, the following hotkeys are available:
 
