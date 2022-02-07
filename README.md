@@ -8,13 +8,21 @@ This tool records live video of a flat surface with a depth camera, automaticall
 
 [![SurfaceStreams Video](assets/anim.gif)](https://www.youtube.com/watch?v=Qe1BROtGyzI "SurfaceStreams Video")
 
+### Building
+
+```
+sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libopencv-dev libeigen3-dev
+[optional] install libk4a1.4-dev and/or librealsense2-dev
+make && sudo make install
+```
+
 ### Usage
 
 **Example 1** - debug/config view of plain webcam: `./surfacecast v4l2 /dev/video0`
 
 **Example 2** - stream Realsense to ![virtual camera device](https://github.com/umlaeute/v4l2loopback): `./surfacecast realsense 0 "videoconvert ! video/x-raw,format=RGB,width=1280,height=720 ! v4l2sink device=/dev/video20"` (mind the quotes around the GStreamer pipeline)
 
-For setting up the virtual camera, install `v4l2loopback-dkms`, copy `config/modules.conf` to `/etc/modules-load.d/` and `config/v4l2loopback.conf` to `/etc/modprobe.d/`, and run `sudo modprobe v4l2loopback`.
+For setting up the virtual camera, install `v4l2loopback-dkms`, copy `config/v4l2loopback-autoload.conf` to `/etc/modules-load.d/` and `config/v4l2loopback-options.conf` to `/etc/modprobe.d/`, and run `sudo modprobe v4l2loopback` (also part of `make install`).
 
 **Example 3** - simple network stream of Kinect Azure: `./surfacecast k4a 0 "jpegenc ! rtpjpegpay ! udpsink host=..."`
 
@@ -46,7 +54,7 @@ If `config.xml` is present in the working directory at startup, parameters are r
 Reference platform: Ubuntu 20.04.
 
   * General (V4L2, SUR40, virtual camera):
-    * gstreamer-1.16 (`libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev`)
+    * gstreamer-1.16+ (`libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev`)
     * opencv-4.2.0 (`libopencv-dev libeigen3-dev`)
   * Kinect Azure:
     * libk4a-1.4.1 (https://github.com/microsoft/Azure-Kinect-Sensor-SDK)

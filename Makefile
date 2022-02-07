@@ -28,3 +28,11 @@ surfacecast: surfacecast.o Camera.o V4L2.o SUR40.o VirtualCam.o ${OBJECTS}
 
 clean:
 	-rm *.o gmon.out ${TARGETS}
+
+install: loopback ${TARGETS}
+	cp -v ${TARGETS} /usr/local/bin/
+
+loopback:
+	cp -vn config/v4l2loopback-autoload.conf /etc/modules-load.d/
+	cp -vn config/v4l2loopback-options.conf  /etc/modprobe.d/
+	modprobe v4l2loopback

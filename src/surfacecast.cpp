@@ -27,7 +27,7 @@ int get_v4l_devnum(const char* path) {
 
 int main(int argc, char* argv[]) {
 
-  std::cout << "\nSurfaceCast v0.2.2 - https://github.com/floe/surfacecast\n" << std::endl;
+  std::cout << "\nSurfaceCast v0.2.3 - https://github.com/floe/surfacecast\n" << std::endl;
 
   if (argc < 3) {
     std::cout << "usage: surfacecast <camtype> <videodev> [\"gstreamer_pipeline\"]\n" << std::endl;
