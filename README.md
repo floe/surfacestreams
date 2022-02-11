@@ -8,13 +8,24 @@ This tool records live video of a flat surface with a depth camera, automaticall
 
 [![SurfaceStreams Video](assets/anim.gif)](https://www.youtube.com/watch?v=Qe1BROtGyzI "SurfaceStreams Video")
 
-### Building
+### Building/Requirements
+
+Reference platform: Ubuntu 20.04.
 
 ```
 sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libopencv-dev libeigen3-dev
-[optional] install libk4a1.4-dev and/or librealsense2-dev
+# optional, needs Microsoft Kinect & Intel Realsense repos:
+# sudo apt install libk4a1.4-dev librealsense2-dev
 make && sudo make install
 ```
+
+  * General (V4L2, SUR40, virtual camera):
+    * gstreamer-1.16+ (`libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev`)
+    * opencv-4.2.0 (`libopencv-dev libeigen3-dev`)
+  * Kinect Azure:
+    * libk4a-1.4.1 (https://github.com/microsoft/Azure-Kinect-Sensor-SDK)
+  * Realsense:
+    * librealsense2-2.50 (https://github.com/IntelRealSense/librealsense)
 
 ### Usage
 
@@ -49,18 +60,6 @@ If `config.xml` is present in the working directory at startup, parameters are r
   * Microsoft Kinect Azure
   * Virtual Camera
 
-### Build requirements:
-
-Reference platform: Ubuntu 20.04.
-
-  * General (V4L2, SUR40, virtual camera):
-    * gstreamer-1.16+ (`libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev`)
-    * opencv-4.2.0 (`libopencv-dev libeigen3-dev`)
-  * Kinect Azure:
-    * libk4a-1.4.1 (https://github.com/microsoft/Azure-Kinect-Sensor-SDK)
-  * Realsense:
-    * librealsense2-2.50 (https://github.com/IntelRealSense/librealsense)
-  
 ### License
 
 SurfaceCast is licensed under the GNU Lesser General Public License v3.0.
