@@ -2,7 +2,7 @@
 //   * https://github.com/IntelRealSense/librealsense/tree/master/examples/align
 //   * https://github.com/IntelRealSense/librealsense/tree/master/examples/measure
 // tested with:
-//   * librealsense2-2.49.0
+//   * librealsense2-2.51.0
 
 #include "Realsense.h"
 #include <iostream>
