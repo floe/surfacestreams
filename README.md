@@ -13,7 +13,7 @@ This tool records live video of a flat surface with a depth camera, automaticall
 Reference platform: Ubuntu 20.04.
 
 ```
-sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libopencv-dev libeigen3-dev
+sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libopencv-dev libeigen3-dev v4l2loopback-dkms
 # optional, needs Microsoft Kinect & Intel Realsense repos:
 # sudo apt install libk4a1.4-dev librealsense2-dev
 make && sudo make install
