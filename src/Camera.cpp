@@ -16,6 +16,10 @@
 
 using namespace cv;
 
+// yuck, globals
+bool do_blank = false;
+void usr1handler(int signal) { do_blank = !do_blank; }
+
 // final transmitted image dimensions
 const int tw = 1280, th = 720;
 
@@ -36,6 +40,7 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
     cv::cv2eigen(tmp,plane.n);
   }
 
+  signal(SIGUSR1,&usr1handler);
   gstreamer_init(_type,_pipe);
   find_plane = false;
   do_filter = true;
@@ -172,6 +177,10 @@ void Camera::handle_key(const char* key) {
       if (key == std::string("f"))
         do_filter = !do_filter;
 
+      // blank
+      if (key == std::string("b"))
+        do_blank = !do_blank;
+
       // quit
       if (key == std::string("q"))
         do_quit = true;
@@ -242,7 +251,10 @@ void Camera::send_buffer() {
   if (input.total() == 0) return;
 
   Mat* output = new Mat(th,tw,input.type());
+
   warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
+
+  if (do_blank) output->setTo(Scalar(0,255,0));
 
   for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10);
 
