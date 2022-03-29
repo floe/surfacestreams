@@ -3,7 +3,7 @@
 #define SUR40_W 960
 #define SUR40_H 540
 
-SUR40::SUR40(const char* pipe, int devnum): V4L2(pipe,devnum,SUR40_W,SUR40_H) {
+SUR40::SUR40(const char* pipe, const char* dev): V4L2(pipe,dev,SUR40_W,SUR40_H) {
   cap.set(cv::CAP_PROP_CONVERT_RGB, false);
 }
 

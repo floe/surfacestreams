@@ -7,7 +7,7 @@ class SUR40: public V4L2 {
 
 	public:
 
-		SUR40(const char* pipe, int devnum);
+		SUR40(const char* pipe, const char* dev);
 
 		void remove_background();
 
