@@ -48,6 +48,7 @@ By default, 1280x720 RGB video data will be sent to the GStreamer pipeline `vide
   * `+` - increase the tolerance wrt background by 0.2cm
   * `-` - decrease the tolerance wrt background by 0.2cm
   * `s` - save current parameters (tolerance, perspective, plane) to `config.xml`
+  * `b` - blank the output (i.e. 100% green). Can also be toggled via `killall -USR1 surfacecast`.
   * `q` - exit program
 
 If `config.xml` is present in the working directory at startup, parameters are re-initialized with saved values.
