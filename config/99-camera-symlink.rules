@@ -1,3 +1,5 @@
+# put this file in /etc/udev/rules.d/
+
 # Logitech Quickcam Sphere
 KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0994", ATTR{index}=="0", SYMLINK+="video-face"
 
@@ -11,4 +13,4 @@ KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0825", ATTR{index}
 KERNEL=="video*", ATTRS{idVendor}=="046d", ATTRS{idProduct}=="082d", ATTR{index}=="0", SYMLINK+="video-surf"
 
 # Samsung SUR40
-KERNEL=="video*", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0775", ATTR{index}=="0", SYMLINK+="video-surf"
+KERNEL=="v4l-touch*", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0775", ATTR{index}=="0", SYMLINK+="video-surf"
