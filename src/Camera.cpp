@@ -252,7 +252,7 @@ void Camera::send_buffer() {
 
   Mat* output = new Mat(th,tw,input.type());
 
-  warpPerspective(input,*output,pm,output->size(),INTER_NEAREST);
+  warpPerspective(input,*output,pm,output->size(),INTER_LINEAR);
 
   if (do_blank) output->setTo(Scalar(0,255,0));
 
