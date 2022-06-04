@@ -13,7 +13,7 @@ V4L2::V4L2(const char* pipe, const char* dev, int cw, int ch):
   cap.set(cv::CAP_PROP_FRAME_WIDTH,cw);
   cap.set(cv::CAP_PROP_FRAME_HEIGHT,ch);
   cap.set(cv::CAP_PROP_FPS,15); // FIXME: hardcoded FPS
-  cap.set(cv::CAP_PROP_FOURCC,cv::VideoWriter::fourcc('M','J','P','G'));
+  cap.set(cv::CAP_PROP_FOURCC,cv::VideoWriter::fourcc('Y','U','Y','V'));
 }
 
 void V4L2::retrieve_frames() {
