@@ -3,6 +3,7 @@
 
 #include "Camera.h"
 
+#include <opencv2/opencv.hpp>
 #include <opencv2/videoio.hpp>
 
 class V4L2: public Camera {
@@ -12,6 +13,7 @@ class V4L2: public Camera {
 		V4L2(const char* pipe, const char* dev, int cw, int ch);
 
 		void retrieve_frames();
+		void remove_background();
 
 	protected:
 
