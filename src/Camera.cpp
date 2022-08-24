@@ -216,7 +216,7 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
       "format", G_TYPE_STRING, type,
       "width",  G_TYPE_INT, tw,
       "height", G_TYPE_INT, th,
-      "framerate", GST_TYPE_FRACTION, 0, 1,
+      "framerate", GST_TYPE_FRACTION, 1, 1,
     NULL), NULL);
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
   gst_element_link_many (appsrc, videosink, NULL);
