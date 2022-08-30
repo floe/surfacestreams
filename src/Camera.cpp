@@ -18,7 +18,9 @@ using namespace cv;
 
 // yuck, globals
 bool do_blank = false;
+bool do_filter = true;
 void usr1handler(int signal) { do_blank = !do_blank; }
+void usr2handler(int signal) { do_filter = !do_filter; }
 
 // final transmitted image dimensions
 const int tw = 1280, th = 720;
@@ -41,9 +43,9 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   }
 
   signal(SIGUSR1,&usr1handler);
+  signal(SIGUSR2,&usr2handler);
   gstreamer_init(_type,_pipe);
   find_plane = false;
-  do_filter = true;
   do_quit = false;
 }
 
