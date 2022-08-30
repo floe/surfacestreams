@@ -38,7 +38,7 @@ void V4L2::remove_background() {
 
   uint8_t* in_data = (uint8_t*)input.data;
 
-  if (in_data) for (int i = 0; i < input.rows*input.cols*3; i+=3) {
+  if (do_filter && in_data) for (int i = 0; i < input.rows*input.cols*3; i+=3) {
 
     uint8_t r = in_data[i+0];
     uint8_t g = in_data[i+1];
