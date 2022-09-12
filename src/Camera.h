@@ -8,6 +8,7 @@
 
 // final transmitted width and height
 extern const int tw, th;
+extern bool do_filter;
 
 class Camera {
 
@@ -27,7 +28,6 @@ class Camera {
 
 		bool do_quit;
 		bool find_plane;
-		bool do_filter;
 
 	protected:
 
