@@ -5,6 +5,7 @@
 #include <opencv2/core/core.hpp>
 #include <PlaneModel.h>
 #include <gst/gst.h>
+#include <TUIO/TuioClient.h>
 
 // final transmitted width and height
 extern const int tw, th;
@@ -55,6 +56,8 @@ class Camera {
 		GstElement* appsrc;
 		GstElement* conv;
 		GstElement* videosink;
+
+		TUIO::TuioClient* client;
 };
 
 typedef struct {

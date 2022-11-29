@@ -47,6 +47,9 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   gstreamer_init(_type,_pipe);
   find_plane = false;
   do_quit = false;
+
+  client = new TUIO::TuioClient();
+  client->connect();
 }
 
 Mat Camera::calcPerspective() {
@@ -259,6 +262,14 @@ void Camera::send_buffer() {
   if (do_blank) output->setTo(Scalar(0,255,0));
 
   for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10);
+
+  std::list<TUIO::TuioCursor*> cursors = client->getTuioCursors();
+  for (auto cursor: cursors) {
+    TUIO::TuioPoint foo = cursor->getPosition();
+    std::cout << foo.getX() << " " << foo.getY() << std::endl;
+    Point2f point(foo.getX()*tw,foo.getY()*th);
+    cv::rectangle(*output,point,point,Scalar(255,0,255),10);
+  }
 
   guint size = output->total()*output->elemSize();
   gpointer data = output->data;
