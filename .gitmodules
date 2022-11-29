@@ -2,3 +2,6 @@
 	path = attic/libfreenect2
 	url = https://github.com/floe/libfreenect2.git
 	branch = gstreamer
+[submodule "tuio11"]
+	path = tuio11
+	url = https://github.com/mkalten/TUIO11_CPP.git
