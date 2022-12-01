@@ -13,6 +13,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include "cv_overlay.h"
 
 using namespace cv;
 
@@ -50,6 +51,8 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
 
   client = new TUIO::TuioClient();
   client->connect();
+
+  pix.push_back(cv::imread("assets/touch.png",cv::IMREAD_UNCHANGED));
 }
 
 Mat Camera::calcPerspective() {
@@ -263,12 +266,13 @@ void Camera::send_buffer() {
 
   for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10);
 
+  // TODO: do the same for TuioObjects
   std::list<TUIO::TuioCursor*> cursors = client->getTuioCursors();
   for (auto cursor: cursors) {
     TUIO::TuioPoint foo = cursor->getPosition();
-    std::cout << foo.getX() << " " << foo.getY() << std::endl;
-    Point2f point(foo.getX()*tw,foo.getY()*th);
-    cv::rectangle(*output,point,point,Scalar(255,0,255),10);
+    //std::cout << cursor->getSessionID() << " " << cursor->getCursorID() << " " << foo.getX() << " " << foo.getY() << std::endl;
+    Point2f point(foo.getX()*tw-(pix[0].cols/2),foo.getY()*th-(pix[0].rows/2));
+    OverlayImage(output,&(pix[0]),point);
   }
 
   guint size = output->total()*output->elemSize();
