@@ -10,6 +10,7 @@
 // final transmitted width and height
 extern const int tw, th;
 extern bool do_filter;
+extern bool do_blank;
 
 class Camera {
 

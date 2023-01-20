@@ -18,10 +18,10 @@
 
 int main(int argc, char* argv[]) {
 
-  std::cout << "\nSurfaceCast v0.2.3 - https://github.com/floe/surfacecast\n" << std::endl;
+  std::cout << "\nSurfaceCast v0.3.0 - https://github.com/floe/surfacecast\n" << std::endl;
 
   if (argc < 3) {
-    std::cout << "usage: surfacecast <camtype> <videodev> [\"gstreamer_pipeline\"]\n" << std::endl;
+    std::cout << "usage: surfacecast [-b] [-f] <camtype> <videodev> [\"gstreamer_pipeline\"]\n" << std::endl;
     std::cout << "available camera types:\n" << std::endl;
     std::cout << "       v4l2 </dev/videoX> - standard V4L2 device (webcam)" << std::endl;
     std::cout << "      sur40 </dev/videoX> - SUR40 video device" << std::endl;
@@ -36,6 +36,14 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
     return 1;
   }
+
+  int optcount = 0;
+  for (int i = 1; i < 3; i++) {
+    if (std::string(argv[i]) == "-f") { do_filter = false; optcount += 1; }
+    if (std::string(argv[i]) == "-b") { do_blank  = true;  optcount += 1; }
+  }
+  argv += optcount;
+  argc -= optcount;
 
   char* gstpipe = nullptr;
   if (argc > 3) gstpipe = argv[3];
