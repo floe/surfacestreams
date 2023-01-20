@@ -49,10 +49,21 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   find_plane = false;
   do_quit = false;
 
+  // TUIO handling
   client = new TUIO::TuioClient();
   client->connect();
 
-  pix.push_back(cv::imread("assets/touch.png",cv::IMREAD_UNCHANGED));
+  // TODO: refactor into separate function
+  std::vector<cv::String> filenames;
+  cv::glob("assets/tuio-object-*.png",filenames);
+  for (auto file: filenames) {
+    std::cout << "Loading TUIO object image " << file << std::endl;
+    size_t dashpos = file.rfind("-");
+    size_t dotpos = file.rfind(".");
+    cv::String mynum = file.substr(dashpos+1,dotpos-dashpos-1);
+    pix[atoi(mynum.c_str())] = cv::imread(file,cv::IMREAD_UNCHANGED);
+  }
+  pix[-1] = cv::imread("assets/tuio-cursor.png",cv::IMREAD_UNCHANGED);
 }
 
 Mat Camera::calcPerspective() {
@@ -266,13 +277,34 @@ void Camera::send_buffer() {
 
   for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10);
 
-  // TODO: do the same for TuioObjects
+  // TODO: refactor into separate function
+  // Overlay TuioCursors as "touchpoint"
   std::list<TUIO::TuioCursor*> cursors = client->getTuioCursors();
   for (auto cursor: cursors) {
     TUIO::TuioPoint foo = cursor->getPosition();
     //std::cout << cursor->getSessionID() << " " << cursor->getCursorID() << " " << foo.getX() << " " << foo.getY() << std::endl;
-    Point2f point(foo.getX()*tw-(pix[0].cols/2),foo.getY()*th-(pix[0].rows/2));
-    OverlayImage(output,&(pix[0]),point);
+    Point2f point(foo.getX()*tw-(pix[-1].cols/2),foo.getY()*th-(pix[-1].rows/2));
+    OverlayImage(output,&(pix[-1]),point);
+  }
+
+  // Overlay TuioObject images (if configured)
+  std::list<TUIO::TuioObject*> objects = client->getTuioObjects();
+  for (auto object: objects) {
+
+    TUIO::TuioPoint foo = object->getPosition();
+    float angle = -360.0*(object->getAngle()/(2.0*M_PI));
+    int symid = object->getSymbolID();
+
+    if (pix.find(symid) == pix.end()) continue;
+    cv::Mat temp = pix[symid];
+
+    Point2f center(temp.cols/2,temp.rows/2);
+    cv::Mat target(temp.cols,temp.rows,CV_8UC4);
+    cv::Mat rotation = cv::getRotationMatrix2D(center,angle,1.0);
+    cv::warpAffine(temp,target,rotation,target.size());
+
+    Point2f point(foo.getX()*tw-(target.cols/2),foo.getY()*th-(target.rows/2));
+    OverlayImage(output,&target,point);
   }
 
   guint size = output->total()*output->elemSize();

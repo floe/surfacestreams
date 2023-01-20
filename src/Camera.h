@@ -58,7 +58,7 @@ class Camera {
 		GstElement* videosink;
 
 		TUIO::TuioClient* client;
-		std::vector<cv::Mat> pix;
+		std::map<int,cv::Mat> pix;
 };
 
 typedef struct {
