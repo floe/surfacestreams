@@ -1,3 +1,10 @@
+### Projectors
+
+  | Manufacturer | Model |  native resolution | throw ratio (distance:width) | distance for 40" |
+  |--------------|--------|-------------------|------------------------------|------------------|
+  | LG           | HS200G | 800x600           | 1.49:1                       | 1.31m            |
+  | Asus         | P3E    | 1280x800          | 0.80:1                        | 0.71m            |
+
 ### random notes
 
   * camera USB bandwidth allocation is a problem
