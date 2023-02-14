@@ -1,9 +1,10 @@
 ### Projectors
 
-  | Manufacturer | Model |  native resolution | throw ratio (distance:width) | distance for 40" |
+  | Manufacturer | Model  | native resolution | throw ratio (distance:width) | distance for 40" |
   |--------------|--------|-------------------|------------------------------|------------------|
   | LG           | HS200G | 800x600           | 1.49:1                       | 1.31m            |
-  | Asus         | P3E    | 1280x800          | 0.80:1                        | 0.71m            |
+  | Asus         | P3E    | 1280x800          | 0.80:1                       | 0.71m            |
+  | Philips      | NPX640 | 1920x1080         | 1.31:1                       | 1.17m            |
 
 ### random notes
 
