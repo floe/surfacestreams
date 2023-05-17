@@ -10,7 +10,7 @@ This tool records live video of a flat surface with a depth camera, automaticall
 
 ### Building/Requirements
 
-Reference platform: Ubuntu 20.04.
+Reference platform: Ubuntu 22.04.
 
 ```
 sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libopencv-dev libeigen3-dev v4l2loopback-dkms
@@ -20,7 +20,7 @@ make && sudo make install
 ```
 
   * General (V4L2, SUR40, virtual camera):
-    * gstreamer-1.16+ (`libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev`)
+    * gstreamer-1.18+ (`libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev`)
     * opencv-4.2.0 (`libopencv-dev libeigen3-dev`)
   * Kinect Azure:
     * libk4a-1.4.1 (https://github.com/microsoft/Azure-Kinect-Sensor-SDK)
