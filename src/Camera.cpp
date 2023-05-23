@@ -83,6 +83,26 @@ Mat Camera::calcPerspective() {
   return result;
 }
 
+Mat Camera::autoPerspective(Mat input) {
+
+  Mat result;
+  Mat mask,hsv;
+  std::vector< std::vector<cv::Point> > contours;
+
+  cv::cvtColor(input, hsv, cv::COLOR_RGB2HSV_FULL);
+
+  Scalar center = hsv.at<Vec3b>(ch/2,cw/2);
+  Scalar upper = center;
+  Scalar lower = center;
+
+  cv::inRange(hsv,lower,upper,mask);
+  cv::findContours(mask,contours,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
+
+  cv::drawContours(input,contours,-1,Scalar(0,0,255));
+
+  return result;
+}
+
 void Camera::saveConfig() {
 
   cv::FileStorage file("config.xml", cv::FileStorage::WRITE);

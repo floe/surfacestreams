@@ -40,6 +40,7 @@ class Camera {
 		virtual void get_3d_pt(int x, int y, float* out);
 
 		cv::Mat calcPerspective();
+		cv::Mat autoPerspective(cv::Mat input);
 		void saveConfig();
 
 		float distance; // plane segmentation distance in cm
