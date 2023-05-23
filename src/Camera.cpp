@@ -91,15 +91,26 @@ Mat Camera::autoPerspective(Mat input) {
 
   cv::cvtColor(input, hsv, cv::COLOR_RGB2HSV_FULL);
 
-  Scalar center = hsv.at<Vec3b>(ch/2,cw/2);
-  Scalar upper = center;
-  Scalar lower = center;
+  Scalar center = hsv.at<Vec3b>(hsv.rows/2,hsv.cols/2);
+  Scalar radius = Scalar(25,25,25);
+  Scalar lower,upper;
+  lower[0] = std::clamp(center[0] - radius[0],0.0,255.0);
+  upper[0] = std::clamp(center[0] + radius[0],0.0,255.0);
+  lower[1] = std::clamp(center[1] - radius[1],0.0,255.0);
+  upper[1] = std::clamp(center[1] + radius[1],0.0,255.0);
+  lower[2] = std::clamp(center[2] - radius[2],0.0,255.0);
+  upper[2] = std::clamp(center[2] + radius[2],0.0,255.0);
 
   cv::inRange(hsv,lower,upper,mask);
   cv::findContours(mask,contours,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
 
-  cv::drawContours(input,contours,-1,Scalar(0,0,255));
-
+  for (auto contour: contours) {
+    std::vector<cv::Point> simple;
+    std::vector< std::vector<cv::Point> > tmp;
+    cv::approxPolyDP(contour,simple,10,true);
+    tmp.push_back(simple);
+    cv::drawContours(input,tmp,0,Scalar(0,0,255));
+  }
   return result;
 }
 
@@ -290,6 +301,8 @@ void Camera::send_buffer() {
   if (input.total() == 0) return;
 
   Mat* output = new Mat(th,tw,input.type());
+
+  //autoPerspective(input);
 
   warpPerspective(input,*output,pm,output->size(),INTER_LINEAR);
 
