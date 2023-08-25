@@ -1,5 +1,7 @@
 #include <unistd.h>
 #include <iostream>
+#include <vector>
+#include <string>
 
 #include "V4L2.h"
 #include "SUR40.h"
@@ -13,15 +15,27 @@
   #include "KinectAzure.h"
 #endif
 
-#define IN_W 1280
-#define IN_H  720
-
 int main(int argc, char* argv[]) {
+
+  int in_w = 1280, in_h = 720;
+  std::vector<std::string> args( argv+1, argv+argc );
 
   std::cout << "\nSurfaceCast v0.3.0 - https://github.com/floe/surfacecast\n" << std::endl;
 
-  if (argc < 3) {
-    std::cout << "usage: surfacecast [-b] [-f] <camtype> <videodev> [\"gstreamer_pipeline\"]\n" << std::endl;
+  std::string camtype = "";
+  const char* device = "0";
+  const char* gstpipe = 0;
+
+  for (auto arg = args.begin(); arg != args.end(); arg++) {
+    if (*arg == "-f") { do_filter = false;  continue; }
+    if (*arg == "-b") { do_blank  = true;   continue; }
+    if (*arg == "-t") { camtype = *(++arg); continue; }
+    if (*arg == "-d") { device  = (++arg)->c_str(); continue; }
+    if (*arg == "-p") { gstpipe = (++arg)->c_str(); continue; }
+  }
+
+  if (camtype == "") {
+    std::cout << "usage: surfacecast -t <camtype> -d <videodev> [-b] [-f] [-p \"gstreamer_pipeline\"]\n" << std::endl;
     std::cout << "available camera types:\n" << std::endl;
     std::cout << "       v4l2 </dev/videoX> - standard V4L2 device (webcam)" << std::endl;
     std::cout << "      sur40 </dev/videoX> - SUR40 video device" << std::endl;
@@ -37,29 +51,18 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  int optcount = 0;
-  for (int i = 1; i < 3; i++) {
-    if (std::string(argv[i]) == "-f") { do_filter = false; optcount += 1; }
-    if (std::string(argv[i]) == "-b") { do_blank  = true;  optcount += 1; }
-  }
-  argv += optcount;
-  argc -= optcount;
-
-  char* gstpipe = nullptr;
-  if (argc > 3) gstpipe = argv[3];
-
   Camera* cam = nullptr;
 
-  if (std::string(argv[1]) ==    "v4l2") cam = new V4L2(gstpipe,argv[2],IN_W,IN_H);
-  if (std::string(argv[1]) ==   "sur40") cam = new SUR40(gstpipe,argv[2]);
-  if (std::string(argv[1]) == "virtcam") cam = new VirtualCam(gstpipe);
+  if (camtype ==    "v4l2") cam = new V4L2(gstpipe,device,in_w,in_h);
+  if (camtype ==   "sur40") cam = new SUR40(gstpipe,device);
+  if (camtype == "virtcam") cam = new VirtualCam(gstpipe);
 
 #ifdef REALSENSE
-  if (std::string(argv[1]) == "realsense") cam = new Realsense(gstpipe);
+  if (camtype == "realsense") cam = new Realsense(gstpipe);
 #endif
 
 #ifdef K4A
-  if (std::string(argv[1]) == "k4a") cam = new KinectAzure(gstpipe);
+  if (camtype == "k4a") cam = new KinectAzure(gstpipe);
 #endif
 
   while (!cam->do_quit) {
