@@ -27,15 +27,21 @@ int main(int argc, char* argv[]) {
   const char* gstpipe = 0;
 
   for (auto arg = args.begin(); arg != args.end(); arg++) {
-    if (*arg == "-f") { do_filter = false;  continue; }
-    if (*arg == "-b") { do_blank  = true;   continue; }
-    if (*arg == "-t") { camtype = *(++arg); continue; }
+    if (*arg == "-f") { do_filter = false;          continue; }
+    if (*arg == "-b") { do_blank  = true;           continue; }
+    if (*arg == "-t") { camtype = *(++arg);         continue; }
     if (*arg == "-d") { device  = (++arg)->c_str(); continue; }
     if (*arg == "-p") { gstpipe = (++arg)->c_str(); continue; }
+    if (*arg == "-s") {
+      std::string size = *(++arg);
+      int x = size.find("x");
+      in_w = stoi(size.substr(  0, x));
+      in_h = stoi(size.substr(x+1,-1));
+    }
   }
 
   if (camtype == "") {
-    std::cout << "usage: surfacecast -t <camtype> -d <videodev> [-b] [-f] [-p \"gstreamer_pipeline\"]\n" << std::endl;
+    std::cout << "usage: surfacecast -t <camtype> -d <videodev> [-b] [-f] [-p \"gstreamer_pipeline\"] [-s wxh]\n" << std::endl;
     std::cout << "available camera types:\n" << std::endl;
     std::cout << "       v4l2 </dev/videoX> - standard V4L2 device (webcam)" << std::endl;
     std::cout << "      sur40 </dev/videoX> - SUR40 video device" << std::endl;
@@ -50,6 +56,8 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
     return 1;
   }
+
+  std::cout << "Opening device " << device << " as camera type " << camtype << " with size " << in_w << "x" << in_h << "..." << std::endl;
 
   Camera* cam = nullptr;
 
