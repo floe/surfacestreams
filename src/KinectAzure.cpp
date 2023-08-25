@@ -6,7 +6,7 @@
 
 #include "KinectAzure.h"
 
-KinectAzure::KinectAzure(const char* pipe): Camera(pipe,"BGRA",1280,720,1024,1024,10) {
+KinectAzure::KinectAzure(const char* pipe): Camera(pipe,"BGRA",1920,1080,1024,1024,10) {
 
 	const uint32_t deviceCount = k4a::device::get_installed_count();
 	if (deviceCount == 0) 
@@ -17,7 +17,7 @@ KinectAzure::KinectAzure(const char* pipe): Camera(pipe,"BGRA",1280,720,1024,102
 	config.camera_fps = K4A_FRAMES_PER_SECOND_15;
 	config.depth_mode = K4A_DEPTH_MODE_WFOV_UNBINNED;
 	config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
-	config.color_resolution = K4A_COLOR_RESOLUTION_720P;
+	config.color_resolution = K4A_COLOR_RESOLUTION_1080P;
 	config.synchronized_images_only = true;
 
 	std::cout << "Started opening K4A device..." << std::endl;
