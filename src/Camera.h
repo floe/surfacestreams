@@ -8,7 +8,6 @@
 #include <TUIO/TuioClient.h>
 
 // final transmitted width and height
-extern const int tw, th;
 extern bool do_filter;
 extern bool do_blank;
 
@@ -16,7 +15,7 @@ class Camera {
 
 	public:
 
-		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0, float _scale = 0.0f);
+		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0, float _scale = 0.0f, int _tw = 1280, int _th = 720 );
 
 		virtual void retrieve_frames();
 		virtual void remove_background();
@@ -34,6 +33,7 @@ class Camera {
 	protected:
 
 		int dw, dh, cw, ch;
+		int tw, th; // final transmitted image size
 		cv::Mat input;
 
 		PlaneModel<float> plane;

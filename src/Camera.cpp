@@ -23,11 +23,8 @@ bool do_filter = true;
 void usr1handler(int signal) { do_blank = !do_blank; }
 void usr2handler(int signal) { do_filter = !do_filter; }
 
-// final transmitted image dimensions
-const int tw = 1280, th = 720;
-
-Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale) {
-  dw = _dw; dh = _dh; cw = _cw; ch = _ch; scale = _scale;
+Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale, int _tw, int _th ) {
+  dw = _dw; dh = _dh; cw = _cw; ch = _ch; scale = _scale; tw = _tw; th = _th;
   im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
 
   cv::FileStorage file("config.xml", cv::FileStorage::READ);
