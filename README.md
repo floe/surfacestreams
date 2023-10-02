@@ -1,6 +1,6 @@
-# SurfaceCast
+# SurfaceStreams
 
-SurfaceCast sends background-subtracted depth camera video via ![GStreamer](https://gstreamer.freedesktop.org/) (left: raw video, center: rectified, right: background removed).
+SurfaceStreams sends background-subtracted depth camera video via ![GStreamer](https://gstreamer.freedesktop.org/) (left: raw video, center: rectified, right: background removed).
 
 ![realsense example](assets/demo.jpg)
 
@@ -63,4 +63,4 @@ If `config.xml` is present in the working directory at startup, parameters are r
 
 ### License
 
-SurfaceCast is licensed under the GNU Lesser General Public License v3.0.
+SurfaceStreams is licensed under the GNU Lesser General Public License v3.0.
