@@ -1,5 +1,11 @@
 # SurfaceStreams
 
+---
+
+Note: this repo is part of the ![SurfaceCast](https://github.com/floe/surfacecast) project.
+
+---
+
 SurfaceStreams sends background-subtracted depth camera video via ![GStreamer](https://gstreamer.freedesktop.org/) (left: raw video, center: rectified, right: background removed).
 
 ![realsense example](assets/demo.jpg)
