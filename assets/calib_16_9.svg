@@ -10,9 +10,9 @@
    xml:space="preserve"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
    sodipodi:docname="calib_16_9.svg"
-   inkscape:export-filename="calib_1280.png"
-   inkscape:export-xdpi="96"
-   inkscape:export-ydpi="96"
+   inkscape:export-filename="calib_1920.png"
+   inkscape:export-xdpi="144"
+   inkscape:export-ydpi="144"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -29,7 +29,7 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.53322519"
-     inkscape:cx="575.74174"
+     inkscape:cx="577.61712"
      inkscape:cy="255.05172"
      inkscape:window-width="1920"
      inkscape:window-height="1160"
@@ -40,7 +40,7 @@
      id="defs2290"><color-profile
        name="Built-in-display"
        xlink:href="../../../.local/share/icc/edid-5f014f05206cd736a6dcde5e8d662057.icc"
-       id="color-profile434" /><filter
+       id="color-profile444" /><filter
        style="color-interpolation-filters:sRGB;"
        inkscape:label="Invert"
        id="filter3441"
@@ -126,7 +126,7 @@
      id="layer1"><g
        style="filter:url(#filter4917);shape-rendering:crispEdges"
        id="g2445"
-       transform="matrix(0,-8.3333335,8.3333335,0,0,190.5)"><rect
+       transform="scale(8.3333335)"><rect
          x="0"
          y="0"
          width="6"
@@ -274,9 +274,9 @@
          y="4"
          fill="#ffffff"
          id="rect2469" /></g><g
-       style="shape-rendering:crispEdges;filter:url(#filter4185)"
+       style="filter:url(#filter4185);shape-rendering:crispEdges"
        id="g2533"
-       transform="scale(8.3333335)"><rect
+       transform="matrix(-8.3333335,0,0,-8.3333335,338.66667,190.5)"><rect
          x="0"
          y="0"
          width="6"
@@ -351,7 +351,7 @@
          id="rect2513" /></g><g
        style="filter:url(#filter5649);shape-rendering:crispEdges"
        id="g2574"
-       transform="matrix(-8.3333335,0,0,-8.3333335,338.66667,190.5)"><rect
+       transform="matrix(0,-8.3333335,8.3333335,0,0,190.5)"><rect
          x="0"
          y="0"
          width="6"
