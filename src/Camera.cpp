@@ -13,6 +13,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/objdetect/aruco_detector.hpp>
 #include "cv_overlay.h"
 
 using namespace cv;
@@ -44,6 +45,7 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   signal(SIGUSR2,&usr2handler);
   gstreamer_init(_type,_pipe);
   find_plane = false;
+  autocalib = false;
   do_quit = false;
 
   // TUIO handling
@@ -80,35 +82,50 @@ Mat Camera::calcPerspective() {
   return result;
 }
 
-Mat Camera::autoPerspective(Mat input) {
+void Camera::autoPerspective() {
 
-  Mat result;
-  Mat mask,hsv;
-  std::vector< std::vector<cv::Point> > contours;
+  aruco::DetectorParameters detectorParams;
+  detectorParams.cornerRefinementMethod = 0; // 0: None, 1: Subpixel, 2: Contour, 3: AprilTag
 
-  cv::cvtColor(input, hsv, cv::COLOR_RGB2HSV_FULL);
+  aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
 
-  Scalar center = hsv.at<Vec3b>(hsv.rows/2,hsv.cols/2);
-  Scalar radius = Scalar(25,25,25);
-  Scalar lower,upper;
-  lower[0] = std::clamp(center[0] - radius[0],0.0,255.0);
-  upper[0] = std::clamp(center[0] + radius[0],0.0,255.0);
-  lower[1] = std::clamp(center[1] - radius[1],0.0,255.0);
-  upper[1] = std::clamp(center[1] + radius[1],0.0,255.0);
-  lower[2] = std::clamp(center[2] - radius[2],0.0,255.0);
-  upper[2] = std::clamp(center[2] + radius[2],0.0,255.0);
+  aruco::ArucoDetector detector(dictionary, detectorParams);
 
-  cv::inRange(hsv,lower,upper,mask);
-  cv::findContours(mask,contours,cv::RETR_EXTERNAL,cv::CHAIN_APPROX_SIMPLE);
+  std::vector<int> ids;
+  std::vector<std::vector<Point2f> > markers;
 
-  for (auto contour: contours) {
-    std::vector<cv::Point> simple;
-    std::vector< std::vector<cv::Point> > tmp;
-    cv::approxPolyDP(contour,simple,10,true);
-    tmp.push_back(simple);
-    cv::drawContours(input,tmp,0,Scalar(0,0,255));
+  Mat inverted = Scalar::all(255) - input;
+
+  // detect markers and estimate pose
+  detector.detectMarkers(inverted, markers, ids);
+
+  std::cout << "\nmarkers:" << std::endl;
+  for (int num = 0; num < ids.size(); num++) {
+    int id = ids[num];
+    std::cout << "Marker: " << id << " " << markers[num][0] << std::endl;
+    if (id > 4) continue;
+    // store the first corner of the marker in the respective list
+    corners[id].push_back(markers[num][0]);
   }
-  return result;
+
+  // check if all corners have at least 10 samples
+  for (int i = 0; i < 4; i++) 
+    if (corners[i].size() < 10)
+      return;
+
+  std::cout << corners[0] << corners[1] << corners[2] << corners[3] << std::endl;
+
+  for (int i = 0; i < 4; i++) {
+    Point2f corner(0,0);
+    for (auto pt: corners[i]) corner += pt;
+    corner /= (float)corners[i].size();
+    corners[i].clear();
+    std::cout << corner << std::endl;
+    src.push_back(corner);
+  }
+  pm = calcPerspective();
+  std::cout << pm << std::endl;
+  autocalib = false;
 }
 
 void Camera::saveConfig() {
@@ -153,6 +170,7 @@ void Camera::ransac_plane() {
   plane = ransac<PlaneModel<float>>( points, distance*scale, 200 );
   if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
   std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
+  find_plane = false;
 }
 
 void Camera::push_point(float x, float y) {
@@ -215,6 +233,10 @@ void Camera::handle_key(const char* key) {
       // reset perspective matrix
       if (key == std::string("space"))
         pm = im;
+
+      // autocalibrate
+      if (key == std::string("a"))
+        autocalib = true;
 
       // find largest plane
       if (key == std::string("p"))

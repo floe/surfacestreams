@@ -7,7 +7,6 @@
 #include <gst/gst.h>
 #include <TUIO/TuioClient.h>
 
-// final transmitted width and height
 extern bool do_filter;
 extern bool do_blank;
 
@@ -26,9 +25,11 @@ class Camera {
 		virtual void handle_key(const char* key);
 
 		void ransac_plane();
+		void autoPerspective();
 
 		bool do_quit;
 		bool find_plane;
+		bool autocalib;
 
 	protected:
 
@@ -40,7 +41,6 @@ class Camera {
 		virtual void get_3d_pt(int x, int y, float* out);
 
 		cv::Mat calcPerspective();
-		cv::Mat autoPerspective(cv::Mat input);
 		void saveConfig();
 
 		float distance; // plane segmentation distance in cm
@@ -53,6 +53,8 @@ class Camera {
 
 		std::vector<cv::Point2f> src;
 		std::vector<cv::Point2f> dst;
+
+		std::vector<cv::Point2f> corners[4];
 
 		GstElement* gpipeline;
 		GstElement* appsrc;

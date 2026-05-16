@@ -77,10 +77,8 @@ int main(int argc, char* argv[]) {
 
     cam->retrieve_frames();
 
-    if (cam->find_plane) {
-      cam->ransac_plane();
-      cam->find_plane = false;
-    }
+    if (cam->find_plane) cam->ransac_plane();
+    if (cam->autocalib) cam->autoPerspective();
 
     cam->remove_background();
 
