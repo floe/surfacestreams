@@ -1,11 +1,11 @@
 #ifndef _REALSENSE_H_
 #define _REALSENSE_H_
 
-#include "Camera.h"
+#include "DepthCamera.h"
 #include <librealsense2/rs.hpp>
 #include <librealsense2/rsutil.h>
 
-class Realsense: public Camera {
+class Realsense: public DepthCamera {
 
 	public:
 

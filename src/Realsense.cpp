@@ -8,7 +8,7 @@
 #include <iostream>
 
 Realsense::Realsense(const char* pipe):
-  Camera(pipe,"RGBx",1280,720,1280,720,0.01f),
+  DepthCamera(pipe,"RGBx",1280,720,1280,720,0.01f),
   // align parameter is the stream type to which we plan to align depth frames.
   align(RS2_STREAM_COLOR),
   depth_frame(nullptr),

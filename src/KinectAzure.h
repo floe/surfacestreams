@@ -1,10 +1,10 @@
 #ifndef _KINECTAZURE_H_
 #define _KINECTAZURE_H_
 
-#include "Camera.h"
+#include "DepthCamera.h"
 #include <k4a/k4a.hpp>
 
-class KinectAzure: public Camera {
+class KinectAzure: public DepthCamera {
 
 	public:
 

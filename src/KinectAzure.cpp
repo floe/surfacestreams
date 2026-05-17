@@ -6,7 +6,7 @@
 
 #include "KinectAzure.h"
 
-KinectAzure::KinectAzure(const char* pipe): Camera(pipe,"BGRA",1920,1080,1024,1024,10) {
+KinectAzure::KinectAzure(const char* pipe): DepthCamera(pipe,"BGRA",1920,1080,1024,1024,10) {
 
 	const uint32_t deviceCount = k4a::device::get_installed_count();
 	if (deviceCount == 0) 
