@@ -5,10 +5,9 @@
 #include <opencv2/imgproc.hpp>
 
 VirtualCam::VirtualCam(const char* pipe):
-  Camera( pipe, "BGRA", tw, th )
+  Camera( pipe, "BGRA", 1280, 720 )
 {
   input = cv::Mat( th, tw, CV_8UC4, cv::Scalar(0,255,0,0) );
-  pm = im;
 }
 
 void VirtualCam::retrieve_frames() {

@@ -6,6 +6,7 @@
 #include <PlaneModel.h>
 #include <gst/gst.h>
 #include <TUIO/TuioClient.h>
+#include <Calibrator.h>
 
 extern bool do_filter;
 extern bool do_blank;
@@ -21,17 +22,19 @@ class Camera {
 		virtual void send_buffer();
 		virtual void remove_background(float start, float end);
 
-		virtual void push_point(float x, float y);
 		virtual void handle_key(const char* key);
 
 		void ransac_plane();
 		void autoPerspective();
+
+		Calibrator calib;
 
 		bool do_quit;
 		bool find_plane;
 		bool autocalib;
 
 	protected:
+
 
 		int dw, dh, cw, ch;
 		int tw, th; // final transmitted image size
@@ -40,21 +43,13 @@ class Camera {
 		PlaneModel<float> plane;
 		virtual void get_3d_pt(int x, int y, float* out);
 
-		cv::Mat calcPerspective();
 		void saveConfig();
 
 		float distance; // plane segmentation distance in cm
 		float scale; // scale from distance in cm to camera units
-		cv::Mat im; // identity matrix
-		cv::Mat pm; // perspective matrix
 
 		void gstreamer_init(const char* type, const char* gstpipe);
 		void gstreamer_cleanup();
-
-		std::vector<cv::Point2f> src;
-		std::vector<cv::Point2f> dst;
-
-		std::vector<cv::Point2f> corners[4];
 
 		GstElement* gpipeline;
 		GstElement* appsrc;

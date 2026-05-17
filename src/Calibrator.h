@@ -14,13 +14,18 @@ class Calibrator {
 
 		void autoPerspective(cv::Mat input);
 
+		void reset();
+		void draw(cv::Mat* output);
+
 		cv::Mat pm; // perspective matrix
 
 	protected:
 
+		cv::Mat im; // identity matrix
+
 		int cw, ch; // captured image size
 		int tw, th; // final transmitted image size
-	
+
 		cv::Mat calcPerspective();
 
 		std::vector<cv::Point2f> src;

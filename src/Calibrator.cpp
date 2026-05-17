@@ -17,6 +17,15 @@
 
 using namespace cv;
 
+Calibrator::Calibrator(int _cw, int _ch, int _tw, int _th ) {
+  cw = _cw; ch = _ch; tw = _tw; th = _th;
+  im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
+  pm = im;
+}
+
+void Calibrator::reset() { pm = im; }
+void Calibrator::draw(Mat* output) { for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10); }
+
 Mat Calibrator::calcPerspective() {
 
   Mat result;

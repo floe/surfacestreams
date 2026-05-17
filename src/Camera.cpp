@@ -24,17 +24,19 @@ bool do_filter = true;
 void usr1handler(int signal) { do_blank = !do_blank; }
 void usr2handler(int signal) { do_filter = !do_filter; }
 
-Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale, int _tw, int _th ) {
-  dw = _dw; dh = _dh; cw = _cw; ch = _ch; scale = _scale; tw = _tw; th = _th;
-  im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
+Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale, int _tw, int _th ): calib(_cw,_ch,_tw,_th) {
+  dw = _dw; dh = _dh;
+  cw = _cw; ch = _ch; 
+  tw = _tw; th = _th;
+  scale = _scale;
 
   cv::FileStorage file("config.xml", cv::FileStorage::READ);
   if (!file.isOpened()) {
-    pm = im;
+    calib.reset();
     distance = 1.0f; // in cm
   } else {
     Mat tmp;
-    file["perspective"] >> pm;
+    file["perspective"] >> calib.pm;
     file["distance"] >> distance;
     file["plane_d"] >> plane.d;
     file["plane_n"] >> tmp;
@@ -65,81 +67,20 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   pix[-1] = cv::imread("assets/tuio-cursor.png",cv::IMREAD_UNCHANGED);
 }
 
-Mat Camera::calcPerspective() {
-
-  Mat result;
-
-  dst.push_back(Point2f( 0, 0));
-  dst.push_back(Point2f(tw, 0));
-  dst.push_back(Point2f(tw,th));
-  dst.push_back(Point2f( 0,th));
-
-  result = getPerspectiveTransform(src,dst);
-
-  src.clear();
-  dst.clear();
-
-  return result;
-}
-
-void Camera::autoPerspective() {
-
-  aruco::DetectorParameters detectorParams;
-  detectorParams.cornerRefinementMethod = 0; // 0: None, 1: Subpixel, 2: Contour, 3: AprilTag
-
-  aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
-
-  aruco::ArucoDetector detector(dictionary, detectorParams);
-
-  std::vector<int> ids;
-  std::vector<std::vector<Point2f> > markers;
-
-  Mat inverted = Scalar::all(255) - input;
-
-  // detect markers and estimate pose
-  detector.detectMarkers(inverted, markers, ids);
-
-  std::cout << "\nmarkers:" << std::endl;
-  for (int num = 0; num < ids.size(); num++) {
-    int id = ids[num];
-    std::cout << "Marker: " << id << " " << markers[num][0] << std::endl;
-    if (id > 4) continue;
-    // store the first corner of the marker in the respective list
-    corners[id].push_back(markers[num][0]);
-  }
-
-  // check if all corners have at least 10 samples
-  for (int i = 0; i < 4; i++) 
-    if (corners[i].size() < 10)
-      return;
-
-  std::cout << corners[0] << corners[1] << corners[2] << corners[3] << std::endl;
-
-  for (int i = 0; i < 4; i++) {
-    Point2f corner(0,0);
-    for (auto pt: corners[i]) corner += pt;
-    corner /= (float)corners[i].size();
-    corners[i].clear();
-    std::cout << corner << std::endl;
-    src.push_back(corner);
-  }
-  pm = calcPerspective();
-  std::cout << pm << std::endl;
-  autocalib = false;
-}
-
 void Camera::saveConfig() {
 
   cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
   Mat tmp; cv::eigen2cv(plane.n,tmp);
 
-  file << "perspective" << pm;
+  file << "perspective" << calib.pm;
   file << "distance" << distance;
   file << "plane_d" << plane.d;
   file << "plane_n" << tmp;
 
   std::cout << "configuration saved to config.xml" << std::endl;
 }
+
+void Camera::autoPerspective() { calib.autoPerspective(input); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -173,16 +114,6 @@ void Camera::ransac_plane() {
   find_plane = false;
 }
 
-void Camera::push_point(float x, float y) {
-  src.push_back(Point2f((float)cw*x/(float)tw,(float)ch*y/(float)th));
-  if (src.size() == 4) {
-    pm = calcPerspective();
-    std::cout << "Perspective transform matrix: ";
-    for (auto el: cv::Mat_<float>(pm.inv())) std::cout << el << ",";
-    std::cout << std::endl;
-  }
-}
-
 void Camera::get_3d_pt(int x, int y, float* out) {
   out[0] = out[1] = out[2] = 0.0f;
 }
@@ -213,7 +144,7 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
     // calibration: top (left, right), bottom (left, right)
     case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
       gst_navigation_event_parse_mouse_button_event(event,&b,&x,&y);
-      cam->push_point(x,y);
+      cam->calib.push_point(x,y);
       break;
 
     case GST_NAVIGATION_EVENT_KEY_PRESS:
@@ -232,7 +163,7 @@ void Camera::handle_key(const char* key) {
 
       // reset perspective matrix
       if (key == std::string("space"))
-        pm = im;
+        calib.reset();
 
       // autocalibrate
       if (key == std::string("a"))
@@ -323,11 +254,11 @@ void Camera::send_buffer() {
 
   //autoPerspective(input);
 
-  warpPerspective(input,*output,pm,output->size(),INTER_LINEAR);
+  warpPerspective(input,*output,calib.pm,output->size(),INTER_LINEAR);
 
   if (do_blank) output->setTo(Scalar(0,255,0));
 
-  for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10);
+  calib.draw(output);
 
   // TODO: refactor into separate function
   // Overlay TuioCursors as "touchpoint"
