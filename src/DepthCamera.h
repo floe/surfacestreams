@@ -1,11 +1,9 @@
 #ifndef _DEPTHCAMERA_H_
 #define _DEPTHCAMERA_H_
 
-#include "Camera.h"
-#include <vector>
+#include <Camera.h>
 #include <opencv2/core/core.hpp>
 #include <PlaneModel.h>
-#include <TUIO/TuioClient.h>
 
 class DepthCamera: public Camera {
 

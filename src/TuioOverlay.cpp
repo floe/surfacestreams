@@ -2,12 +2,11 @@
 
 #include <vector>
 #include <iostream>
-#include <unistd.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "cv_overlay.h"
+#include <cv_overlay.h>
 
 using namespace cv;
 

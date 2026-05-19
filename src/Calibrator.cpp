@@ -2,16 +2,8 @@
 
 #include <vector>
 #include <iostream>
-#include <unistd.h>
 
-////////////////////////////////////////////////////////////////////////////////
-//
-// OpenCV stuff
-//
-
-#include <Eigen/Core>
 #include <opencv2/core/core.hpp>
-#include <opencv2/core/eigen.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/objdetect/aruco_detector.hpp>
 

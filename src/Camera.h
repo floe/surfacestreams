@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <opencv2/core/core.hpp>
-#include <PlaneModel.h>
 #include <gst/gst.h>
 #include <TuioOverlay.h>
 #include <Calibrator.h>
