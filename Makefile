@@ -28,7 +28,7 @@ tuio11/libTUIO.a:
 
 -include $(wildcard *.d)
 
-surfacecast: surfacecast.o Camera.o DepthCamera.o Calibrator.o V4L2.o SUR40.o VirtualCam.o ${OBJECTS} tuio11/libTUIO.a
+surfacecast: surfacecast.o Camera.o DepthCamera.o TuioOverlay.o Calibrator.o V4L2.o SUR40.o VirtualCam.o ${OBJECTS} tuio11/libTUIO.a
 	g++ -o $@ $^ ${LDFLAGS}
 
 clean:

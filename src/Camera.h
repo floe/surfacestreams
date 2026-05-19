@@ -5,7 +5,7 @@
 #include <opencv2/core/core.hpp>
 #include <PlaneModel.h>
 #include <gst/gst.h>
-#include <TUIO/TuioClient.h>
+#include <TuioOverlay.h>
 #include <Calibrator.h>
 
 extern bool do_filter;
@@ -50,8 +50,7 @@ class Camera {
 		GstElement* conv;
 		GstElement* videosink;
 
-		TUIO::TuioClient* client;
-		std::map<int,cv::Mat> pix;
+		TuioOverlay overlay;
 };
 
 typedef struct {
