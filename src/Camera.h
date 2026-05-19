@@ -15,7 +15,7 @@ class Camera {
 
 	public:
 
-		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw = 0, int _dh = 0, float _scale = 0.0f, int _tw = 1280, int _th = 720 );
+		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw = 1280, int _th = 720 );
 
 		virtual void retrieve_frames();
 		virtual void remove_background();
@@ -24,7 +24,7 @@ class Camera {
 
 		virtual void handle_key(const char* key);
 
-		void ransac_plane();
+		virtual void ransac_plane();
 		void autoPerspective();
 
 		Calibrator calib;
@@ -35,18 +35,12 @@ class Camera {
 
 	protected:
 
-
-		int dw, dh, cw, ch;
+		int cw, ch; // input color image size
 		int tw, th; // final transmitted image size
 		cv::Mat input;
 
-		PlaneModel<float> plane;
-		virtual void get_3d_pt(int x, int y, float* out);
-
-		void saveConfig();
-
-		float distance; // plane segmentation distance in cm
-		float scale; // scale from distance in cm to camera units
+		virtual cv::FileStorage saveConfig();
+		virtual cv::FileStorage loadConfig();
 
 		void gstreamer_init(const char* type, const char* gstpipe);
 		void gstreamer_cleanup();

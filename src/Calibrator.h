@@ -12,7 +12,7 @@ class Calibrator {
 
 		void push_point(float x, float y);
 
-		void autoPerspective(cv::Mat input);
+		bool autoPerspective(cv::Mat input);
 
 		void reset();
 		void draw(cv::Mat* output);

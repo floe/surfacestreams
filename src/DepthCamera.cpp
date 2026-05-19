@@ -8,10 +8,39 @@
 #include <Eigen/Core>
 #include <SimpleRansac.h>
 #include <PlaneModel.h>
+#include <opencv2/core/eigen.hpp>
 
 DepthCamera::DepthCamera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale, int _tw, int _th ):
-  Camera(_pipe,_type,_cw,_ch,_dw,_dh,_scale,_tw,_th) {
+  Camera(_pipe,_type,_cw,_ch,_tw,_th) {
+    dw = _dw; dh = _dh;
     find_plane = false;
+    distance = 1.0f;
+    scale = _scale;
+}
+
+cv::FileStorage DepthCamera::saveConfig() {
+
+  cv::Mat tmp; cv::eigen2cv(plane.n,tmp);
+  cv::FileStorage file = Camera::saveConfig();
+
+  file << "distance" << distance;
+  file << "plane_d" << plane.d;
+  file << "plane_n" << tmp;
+
+  return file;
+}
+
+cv::FileStorage DepthCamera::loadConfig() {
+
+  cv::Mat tmp;
+  cv::FileStorage file = Camera::loadConfig();
+
+  file["distance"] >> distance;
+  file["plane_d"] >> plane.d;
+  file["plane_n"] >> tmp;
+  cv::cv2eigen(tmp,plane.n);
+
+  return file;
 }
 
 // use RANSAC to compute a plane out of sparse point cloud

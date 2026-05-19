@@ -29,6 +29,7 @@ void Calibrator::draw(Mat* output) { for (Point2f point: src) cv::rectangle(*out
 Mat Calibrator::calcPerspective() {
 
   Mat result;
+  dst.clear();
 
   dst.push_back(Point2f( 0, 0));
   dst.push_back(Point2f(tw, 0));
@@ -43,7 +44,7 @@ Mat Calibrator::calcPerspective() {
   return result;
 }
 
-void Calibrator::autoPerspective(Mat input) {
+bool Calibrator::autoPerspective(Mat input) {
 
   aruco::DetectorParameters detectorParams;
   detectorParams.cornerRefinementMethod = 0; // 0: None, 1: Subpixel, 2: Contour, 3: AprilTag
@@ -72,9 +73,10 @@ void Calibrator::autoPerspective(Mat input) {
   // check if all corners have at least 10 samples
   for (int i = 0; i < 4; i++) 
     if (corners[i].size() < 10)
-      return;
+      return true; // continue sampling
 
   std::cout << corners[0] << corners[1] << corners[2] << corners[3] << std::endl;
+  src.clear();
 
   for (int i = 0; i < 4; i++) {
     Point2f corner(0,0);
@@ -85,7 +87,8 @@ void Calibrator::autoPerspective(Mat input) {
     src.push_back(corner);
   }
   pm = calcPerspective();
-  std::cout << pm << std::endl;
+
+  return false;
 }
 
 

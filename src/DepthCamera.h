@@ -19,6 +19,14 @@ class DepthCamera: public Camera {
 
 	protected:
 
+		int dw,dh; // input depth image size
+
+		float distance; // plane segmentation distance in cm
+		float scale; // scale from distance in cm to camera units
+
+		virtual cv::FileStorage saveConfig();
+		virtual cv::FileStorage loadConfig();
+
 		PlaneModel<float> plane;
 		virtual void get_3d_pt(int x, int y, float* out);
 

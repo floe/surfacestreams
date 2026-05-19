@@ -24,28 +24,16 @@ bool do_filter = true;
 void usr1handler(int signal) { do_blank = !do_blank; }
 void usr2handler(int signal) { do_filter = !do_filter; }
 
-Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, int _dh, float _scale, int _tw, int _th ): calib(_cw,_ch,_tw,_th) {
-  dw = _dw; dh = _dh;
+Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw, int _th ): calib(_cw,_ch,_tw,_th) {
   cw = _cw; ch = _ch; 
   tw = _tw; th = _th;
-  scale = _scale;
-
-  cv::FileStorage file("config.xml", cv::FileStorage::READ);
-  if (!file.isOpened()) {
-    calib.reset();
-    distance = 1.0f; // in cm
-  } else {
-    Mat tmp;
-    file["perspective"] >> calib.pm;
-    file["distance"] >> distance;
-    file["plane_d"] >> plane.d;
-    file["plane_n"] >> tmp;
-    cv::cv2eigen(tmp,plane.n);
-  }
 
   signal(SIGUSR1,&usr1handler);
   signal(SIGUSR2,&usr2handler);
+
+  loadConfig();
   gstreamer_init(_type,_pipe);
+
   find_plane = false;
   autocalib = false;
   do_quit = false;
@@ -67,56 +55,25 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _dw, 
   pix[-1] = cv::imread("assets/tuio-cursor.png",cv::IMREAD_UNCHANGED);
 }
 
-void Camera::saveConfig() {
-
-  cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
-  Mat tmp; cv::eigen2cv(plane.n,tmp);
-
-  file << "perspective" << calib.pm;
-  file << "distance" << distance;
-  file << "plane_d" << plane.d;
-  file << "plane_n" << tmp;
-
-  std::cout << "configuration saved to config.xml" << std::endl;
-}
-
-void Camera::autoPerspective() { calib.autoPerspective(input); }
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-// plane model stuff
-//
-
-#include <Eigen/Core>
-#include <SimpleRansac.h>
-#include <PlaneModel.h>
-
-// use RANSAC to compute a plane out of sparse point cloud
-void Camera::ransac_plane() {
-
-  std::vector<Eigen::Vector3f> points;
-
-  for (int y = 0; y < dh; y++) {
-    for (int x = 0; x < dw; x++) {
-      float pt[3];
-      get_3d_pt(x,y,pt);
-      if (std::isnan(pt[2]) || std::isinf(pt[2]) || pt[2] <= 0) continue;
-      Eigen::Vector3f point = { pt[0], pt[1], pt[2] };
-      points.push_back( point );
-    }
+cv::FileStorage Camera::loadConfig() {
+  cv::FileStorage file("config.xml", cv::FileStorage::READ);
+  if (!file.isOpened()) {
+    calib.reset();
+  } else {
+    file["perspective"] >> calib.pm;
   }
-
-  std::cout << "3D point count: " << points.size() << std::endl;
-  plane = ransac<PlaneModel<float>>( points, distance*scale, 200 );
-  if (plane.d < 0.0) { plane.d = -plane.d; plane.n = -plane.n; }
-  std::cout << "Ransac computed plane: n=" << plane.n.transpose() << " d=" << plane.d << std::endl;
-  find_plane = false;
+  return file;
 }
 
-void Camera::get_3d_pt(int x, int y, float* out) {
-  out[0] = out[1] = out[2] = 0.0f;
+cv::FileStorage Camera::saveConfig() {
+  cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
+  file << "perspective" << calib.pm;
+  std::cout << "configuration saved to config.xml" << std::endl;
+  return file;
 }
+
+void Camera::autoPerspective() { autocalib = calib.autoPerspective(input); }
+void Camera::ransac_plane() { } // unimplemented, only makes sense for DepthCamera
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -190,10 +147,10 @@ void Camera::handle_key(const char* key) {
         saveConfig();
 
       // change plane distance threshold
-      if (key == std::string( "plus")) distance += 0.2;
+      /*if (key == std::string( "plus")) distance += 0.2;
       if (key == std::string("minus")) distance -= 0.2;
 
-      std::cout << "current plane distance: " << distance << " cm " << std::endl;
+      std::cout << "current plane distance: " << distance << " cm " << std::endl;*/
 }
 
 void Camera::gstreamer_init(const char* type, const char* gstpipe) {
