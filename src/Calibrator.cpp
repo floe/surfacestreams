@@ -52,6 +52,7 @@ bool Calibrator::autoPerspective(Mat input) {
 
   // detect markers and estimate pose
   detector.detectMarkers(inverted, markers, ids);
+  aruco::drawDetectedMarkers(input, markers, ids);
 
   std::cout << "\nmarkers:" << std::endl;
   for (unsigned int num = 0; num < ids.size(); num++) {
@@ -70,6 +71,7 @@ bool Calibrator::autoPerspective(Mat input) {
   std::cout << corners[0] << corners[1] << corners[2] << corners[3] << std::endl;
   src.clear();
 
+  // FIXME: needs to restart if variance is too high
   for (int i = 0; i < 4; i++) {
     Point2f corner(0,0);
     for (auto pt: corners[i]) corner += pt;
