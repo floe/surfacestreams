@@ -5,7 +5,6 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/objdetect/aruco_detector.hpp>
 
 using namespace cv;
 
@@ -13,6 +12,13 @@ Calibrator::Calibrator(int _cw, int _ch, int _tw, int _th ) {
   cw = _cw; ch = _ch; tw = _tw; th = _th;
   im = (Mat_<float>(3,3) << (float)tw/(float)cw, 0, 0, 0, (float)th/(float)ch, 0, 0, 0, 1 );
   pm = im;
+
+  aruco::DetectorParameters detectorParams;
+  detectorParams.cornerRefinementMethod = 0; // 0: None, 1: Subpixel, 2: Contour, 3: AprilTag
+
+  aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
+
+  detector = aruco::ArucoDetector(dictionary, detectorParams);
 }
 
 void Calibrator::reset() { pm = im; }
@@ -38,13 +44,6 @@ Mat Calibrator::calcPerspective() {
 
 bool Calibrator::autoPerspective(Mat input) {
 
-  aruco::DetectorParameters detectorParams;
-  detectorParams.cornerRefinementMethod = 0; // 0: None, 1: Subpixel, 2: Contour, 3: AprilTag
-
-  aruco::Dictionary dictionary = cv::aruco::getPredefinedDictionary(aruco::DICT_4X4_50);
-
-  aruco::ArucoDetector detector(dictionary, detectorParams);
-
   std::vector<int> ids;
   std::vector<std::vector<Point2f> > markers;
 
@@ -54,7 +53,11 @@ bool Calibrator::autoPerspective(Mat input) {
   detector.detectMarkers(inverted, markers, ids);
   aruco::drawDetectedMarkers(input, markers, ids);
 
-  std::cout << "\nmarkers:" << std::endl;
+  std::ostringstream message; message << "Detecting markers (need > 10 per corner): ";
+  message << corners[0].size() << " " << corners[1].size() << " " << corners[2].size() << " " << corners[3].size();
+  cv::putText(input,message.str().c_str(),Point2f(30,50),cv::FONT_HERSHEY_SIMPLEX,1.0,Scalar(1,1,1));
+
+  // walk through all detected markers (id in ids, corner points in markers)
   for (unsigned int num = 0; num < ids.size(); num++) {
     int id = ids[num];
     std::cout << "Marker: " << id << " " << markers[num][0] << std::endl;
@@ -68,7 +71,6 @@ bool Calibrator::autoPerspective(Mat input) {
     if (corners[i].size() < 10)
       return true; // continue sampling
 
-  std::cout << corners[0] << corners[1] << corners[2] << corners[3] << std::endl;
   src.clear();
 
   // FIXME: needs to restart if variance is too high

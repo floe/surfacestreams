@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <opencv2/core/core.hpp>
+#include <opencv2/objdetect/aruco_detector.hpp>
 
 class Calibrator {
 
@@ -32,6 +33,7 @@ class Calibrator {
 		std::vector<cv::Point2f> dst;
 
 		std::vector<cv::Point2f> corners[4];
+		cv::aruco::ArucoDetector detector;
 };
 
 #endif // _CALIBRATOR_H_
