@@ -52,9 +52,4 @@ class Camera {
 		TuioOverlay overlay;
 };
 
-typedef struct {
-	Camera* obj;
-	float start,end;
-} thread_info;
-
 #endif // _CAMERA_H_

@@ -218,6 +218,16 @@ void Camera::gstreamer_cleanup() {
   gst_object_unref (GST_OBJECT (gpipeline));
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//
+// thread stuff
+//
+
+typedef struct {
+	Camera* obj;
+	float start,end;
+} thread_info;
+
 void* thread_helper(void* arg) {
 	thread_info* ti = (thread_info*)arg;
 	ti->obj->remove_background(ti->start,ti->end);
