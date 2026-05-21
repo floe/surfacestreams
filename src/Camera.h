@@ -36,7 +36,11 @@ class Camera {
 
 		int cw, ch; // input color image size
 		int tw, th; // final transmitted image size
-		cv::Mat input;
+		cv::Mat input; // input camera image
+
+		// undistortion
+		cv::Mat camMat, distCoeffs;
+		cv::Mat map1, map2;
 
 		virtual cv::FileStorage saveConfig();
 		virtual cv::FileStorage loadConfig();

@@ -12,7 +12,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include <opencv2/objdetect/aruco_detector.hpp>
+#include <opencv2/calib3d.hpp>
 
 using namespace cv;
 
@@ -35,14 +35,22 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw, 
   find_plane = false;
   autocalib = false;
   do_quit = false;
+
+  // init undistortion maps
+  Mat newCam = getOptimalNewCameraMatrix( camMat, distCoeffs, Size(cw,ch), 0.5 );
+  initUndistortRectifyMap( camMat, distCoeffs, Mat(), newCam, Size(cw,ch), CV_16SC2, map1, map2);
 }
 
 cv::FileStorage Camera::loadConfig() {
   cv::FileStorage file("config.xml", cv::FileStorage::READ);
   if (!file.isOpened()) {
     calib.reset();
+    camMat = Mat_<float>({3, 3}, {1, 0, cw/2.0f, 0, 1, ch/2.0f, 0, 0, 1});
+    distCoeffs = Mat_<float>({5,1}, {0, 0, 0, 0, 0});
   } else {
     file["perspective"] >> calib.pm;
+    file["camMat"] >> camMat;
+    file["distCoeffs"] >> distCoeffs;
   }
   return file;
 }
@@ -50,12 +58,21 @@ cv::FileStorage Camera::loadConfig() {
 cv::FileStorage Camera::saveConfig() {
   cv::FileStorage file("config.xml", cv::FileStorage::WRITE);
   file << "perspective" << calib.pm;
+  file << "camMat" << camMat;
+  file << "distCoeffs" << distCoeffs;
   std::cout << "configuration saved to config.xml" << std::endl;
   return file;
 }
 
 void Camera::autoPerspective() { autocalib = calib.autoPerspective(input); }
 void Camera::ransac_plane() { } // unimplemented, only makes sense for DepthCamera
+
+void Camera::retrieve_frames() {
+  // TODO: override this in any camera subclass
+  Mat tmp;
+  remap(input,tmp,map1,map2,INTER_LINEAR);
+  input = tmp;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -232,10 +249,6 @@ void* thread_helper(void* arg) {
 	thread_info* ti = (thread_info*)arg;
 	ti->obj->remove_background(ti->start,ti->end);
 	return nullptr;
-}
-
-void Camera::retrieve_frames() {
-  // TODO: override this in any camera subclass
 }
 
 void Camera::remove_background(float start, float end) {
