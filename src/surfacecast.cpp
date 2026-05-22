@@ -22,6 +22,7 @@ bool do_quit = false;
 bool do_blank = false;
 bool do_filter = true;
 bool find_plane = false;
+bool do_undistort = false;
 
 void usr1handler(int signal) { do_blank = !do_blank; }
 void usr2handler(int signal) { do_filter = !do_filter; }
@@ -57,6 +58,10 @@ void handle_key(const char* key) {
   // save
   if (key == std::string("s"))
     cam->saveConfig();
+
+  // undistort
+  if (key == std::string("u"))
+    do_undistort = !do_undistort;
 
   // change plane distance threshold
   /*if (key == std::string( "plus")) distance += 0.2;
@@ -169,6 +174,7 @@ int main(int argc, char* argv[]) {
 
     cam->retrieve_frames();
 
+    if (do_undistort) cam->undistort();
     if (find_plane) cam->ransac_plane();
     if (cam->autocalib) cam->autoPerspective();
 
