@@ -17,7 +17,8 @@
 
 int main(int argc, char* argv[]) {
 
-  int in_w = 1280, in_h = 720;
+  int  in_w = 1280,  in_h = 720;
+  int out_w = 1280, out_h = 720;
   std::vector<std::string> args( argv+1, argv+argc );
 
   std::cout << "\nSurfaceCast v0.3.0 - https://github.com/floe/surfacecast\n" << std::endl;
@@ -26,22 +27,31 @@ int main(int argc, char* argv[]) {
   const char* device = "0";
   const char* gstpipe = 0;
 
+  // some argument parsing
   for (auto arg = args.begin(); arg != args.end(); arg++) {
     if (*arg == "-f") { do_filter = false;          continue; }
     if (*arg == "-b") { do_blank  = true;           continue; }
     if (*arg == "-t") { camtype = *(++arg);         continue; }
     if (*arg == "-d") { device  = (++arg)->c_str(); continue; }
     if (*arg == "-p") { gstpipe = (++arg)->c_str(); continue; }
-    if (*arg == "-s") {
+    if (*arg == "-is") {
       std::string size = *(++arg);
       int x = size.find("x");
       in_w = stoi(size.substr(  0, x));
       in_h = stoi(size.substr(x+1,-1));
+      continue;
+    }
+    if (*arg == "-os") {
+      std::string size = *(++arg);
+      int x = size.find("x");
+      out_w = stoi(size.substr(  0, x));
+      out_h = stoi(size.substr(x+1,-1));
+      continue;
     }
   }
 
   if (camtype == "") {
-    std::cout << "usage: surfacecast -t <camtype> -d <videodev> [-b] [-f] [-p \"gstreamer_pipeline\"] [-s wxh]\n" << std::endl;
+    std::cout << "usage: surfacecast -t <camtype> -d <videodev> [-b] [-f] [-p \"gstreamer_pipeline\"] [-is WxH] [-os WxH]\n" << std::endl;
     std::cout << "available camera types:\n" << std::endl;
     std::cout << "       v4l2 </dev/videoX> - standard V4L2 device (webcam)" << std::endl;
     std::cout << "      sur40 </dev/videoX> - SUR40 video device" << std::endl;
