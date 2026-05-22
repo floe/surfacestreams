@@ -16,21 +16,22 @@ class Camera {
 
 		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw = 1280, int _th = 720 );
 
-		virtual void retrieve_frames();
+		virtual void retrieve_frames() = 0;
 		virtual void remove_background();
 		virtual void send_buffer();
 		virtual void remove_background(float start, float end);
 
-		virtual void handle_key(const char* key);
+		void setPadHandler( GstPadEventFunction pad_event );
 
 		virtual void ransac_plane();
 		void autoPerspective();
+		void undistort();
 
 		Calibrator calib;
-
-		bool do_quit;
-		bool find_plane;
 		bool autocalib;
+
+		virtual cv::FileStorage saveConfig();
+		virtual cv::FileStorage loadConfig();
 
 	protected:
 
@@ -41,9 +42,6 @@ class Camera {
 		// undistortion
 		cv::Mat camMat, distCoeffs;
 		cv::Mat map1, map2;
-
-		virtual cv::FileStorage saveConfig();
-		virtual cv::FileStorage loadConfig();
 
 		void gstreamer_init(const char* type, const char* gstpipe);
 		void gstreamer_cleanup();

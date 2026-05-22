@@ -15,7 +15,92 @@
   #include "KinectAzure.h"
 #endif
 
+bool do_quit = false;
+bool do_blank = false;
+bool do_filter = true;
+bool find_plane = false;
+
+void usr1handler(int signal) { do_blank = !do_blank; }
+void usr2handler(int signal) { do_filter = !do_filter; }
+
+Camera* cam = nullptr;
+
+#include <gst/gst.h>
+#include <gst/video/navigation.h>
+
+#include <stdint.h>
+#include <string.h>
+
+void handle_key(const char* key) {
+
+  // reset perspective matrix
+  if (key == std::string("space"))
+    cam->calib.reset();
+
+  // autocalibrate
+  if (key == std::string("a"))
+    cam->autocalib = true;
+
+  // find largest plane
+  if (key == std::string("p"))
+    find_plane = true;
+
+  // subtract plane
+  if (key == std::string("f"))
+    do_filter = !do_filter;
+
+  // blank
+  if (key == std::string("b"))
+    do_blank = !do_blank;
+
+  // quit
+  if (key == std::string("q"))
+    do_quit = true;
+
+  // save
+  if (key == std::string("s"))
+    cam->saveConfig();
+
+  // change plane distance threshold
+  /*if (key == std::string( "plus")) distance += 0.2;
+  if (key == std::string("minus")) distance -= 0.2;
+
+  std::cout << "current plane distance: " << distance << " cm " << std::endl;*/
+}
+
+gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
+
+  if (GST_EVENT_TYPE (event) != GST_EVENT_NAVIGATION)
+    return gst_pad_event_default(pad,parent,event);
+
+  double x,y; int b;
+  const gchar* key;
+  Camera* cam = (Camera*)gst_pad_get_element_private(pad);
+
+  switch (gst_navigation_event_get_type(event)) {
+
+    // calibration: top (left, right), bottom (left, right)
+    case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
+      gst_navigation_event_parse_mouse_button_event(event,&b,&x,&y);
+      cam->calib.push_point(x,y);
+      break;
+
+    case GST_NAVIGATION_EVENT_KEY_PRESS:
+      gst_navigation_event_parse_key_event(event,&key);
+      handle_key(key);
+      break;
+
+    default:
+      return false;
+  }
+
+  return true;
+}
+
 int main(int argc, char* argv[]) {
+
+  signal(SIGUSR1,&usr1handler);
+  signal(SIGUSR2,&usr2handler);
 
   int  in_w = 1280,  in_h = 720;
   int out_w = 1280, out_h = 720;
@@ -69,8 +154,6 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Opening device " << device << " as camera type " << camtype << " with size " << in_w << "x" << in_h << "..." << std::endl;
 
-  Camera* cam = nullptr;
-
   if (camtype ==    "v4l2") cam = new V4L2(gstpipe,device,in_w,in_h);
   if (camtype ==   "sur40") cam = new SUR40(gstpipe,device);
   if (camtype == "virtcam") cam = new VirtualCam(gstpipe);
@@ -83,11 +166,13 @@ int main(int argc, char* argv[]) {
   if (camtype == "k4a") cam = new KinectAzure(gstpipe);
 #endif
 
-  while (!cam->do_quit) {
+  cam->setPadHandler(pad_event);
+
+  while (!do_quit) {
 
     cam->retrieve_frames();
 
-    if (cam->find_plane) cam->ransac_plane();
+    if (find_plane) cam->ransac_plane();
     if (cam->autocalib) cam->autoPerspective();
 
     cam->remove_background();

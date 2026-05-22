@@ -16,25 +16,14 @@
 
 using namespace cv;
 
-// yuck, globals
-bool do_blank = false;
-bool do_filter = true;
-void usr1handler(int signal) { do_blank = !do_blank; }
-void usr2handler(int signal) { do_filter = !do_filter; }
-
 Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw, int _th ): calib(_cw,_ch,_tw,_th), overlay(_tw,_th) {
   cw = _cw; ch = _ch; 
   tw = _tw; th = _th;
 
-  signal(SIGUSR1,&usr1handler);
-  signal(SIGUSR2,&usr2handler);
-
   loadConfig();
   gstreamer_init(_type,_pipe);
 
-  find_plane = false;
   autocalib = false;
-  do_quit = false;
 
   // init undistortion maps
   Mat newCam = getOptimalNewCameraMatrix( camMat, distCoeffs, Size(cw,ch), 0.5 );
@@ -67,7 +56,7 @@ cv::FileStorage Camera::saveConfig() {
 void Camera::autoPerspective() { autocalib = calib.autoPerspective(input); }
 void Camera::ransac_plane() { } // unimplemented, only makes sense for DepthCamera
 
-void Camera::retrieve_frames() {
+void Camera::undistort() {
   // TODO: override this in any camera subclass
   Mat tmp;
   remap(input,tmp,map1,map2,INTER_LINEAR);
@@ -81,76 +70,9 @@ void Camera::retrieve_frames() {
 
 #include <gst/gst.h>
 #include <gst/app/gstappsrc.h>
-#include <gst/video/navigation.h>
 
 #include <stdint.h>
 #include <string.h>
-
-gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
-
-  if (GST_EVENT_TYPE (event) != GST_EVENT_NAVIGATION)
-    return gst_pad_event_default(pad,parent,event);
-
-  double x,y; int b;
-  const gchar* key;
-  Camera* cam = (Camera*)gst_pad_get_element_private(pad);
-
-  switch (gst_navigation_event_get_type(event)) {
-
-    // calibration: top (left, right), bottom (left, right)
-    case GST_NAVIGATION_EVENT_MOUSE_BUTTON_RELEASE:
-      gst_navigation_event_parse_mouse_button_event(event,&b,&x,&y);
-      cam->calib.push_point(x,y);
-      break;
-
-    case GST_NAVIGATION_EVENT_KEY_PRESS:
-      gst_navigation_event_parse_key_event(event,&key);
-      cam->handle_key(key);
-      break;
-
-    default:
-      return false;
-  }
-
-  return true;
-}
-
-void Camera::handle_key(const char* key) {
-
-      // reset perspective matrix
-      if (key == std::string("space"))
-        calib.reset();
-
-      // autocalibrate
-      if (key == std::string("a"))
-        autocalib = true;
-
-      // find largest plane
-      if (key == std::string("p"))
-        find_plane = true;
-
-      // subtract plane
-      if (key == std::string("f"))
-        do_filter = !do_filter;
-
-      // blank
-      if (key == std::string("b"))
-        do_blank = !do_blank;
-
-      // quit
-      if (key == std::string("q"))
-        do_quit = true;
-
-      // save
-      if (key == std::string("s"))
-        saveConfig();
-
-      // change plane distance threshold
-      /*if (key == std::string( "plus")) distance += 0.2;
-      if (key == std::string("minus")) distance -= 0.2;
-
-      std::cout << "current plane distance: " << distance << " cm " << std::endl;*/
-}
 
 void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
@@ -177,13 +99,6 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
   gst_bin_add_many (GST_BIN (gpipeline), appsrc, videosink, NULL);
   gst_element_link_many (appsrc, videosink, NULL);
 
-  // attach event listener to suitable src pad (either appsrc or videoconvert)
-  // FIXME: ugly hack, hardcoded element name
-  GstElement* display = gst_bin_get_by_name( (GstBin*)gpipeline, "display" );
-  GstPad* srcpad = gst_element_get_static_pad (display?display:appsrc, "src");
-  gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
-  gst_pad_set_element_private( srcpad, (gpointer)this);
-
   /* setup appsrc */
   g_object_set (G_OBJECT (appsrc),
     "stream-type", 0, // GST_APP_STREAM_TYPE_STREAM
@@ -195,6 +110,15 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
   /* play */
   gst_element_set_state (gpipeline, GST_STATE_PLAYING);
+}
+
+void Camera::setPadHandler( GstPadEventFunction pad_event ) {
+  // attach event listener to suitable src pad (either appsrc or videoconvert)
+  // FIXME: ugly hack, hardcoded element name
+  GstElement* display = gst_bin_get_by_name( (GstBin*)gpipeline, "display" );
+  GstPad* srcpad = gst_element_get_static_pad (display?display:appsrc, "src");
+  gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
+  gst_pad_set_element_private( srcpad, (gpointer)this);
 }
 
 void buffer_destroy(gpointer data) {
