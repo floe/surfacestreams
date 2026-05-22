@@ -1,4 +1,6 @@
 #include <unistd.h>
+#include <termios.h>
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -21,8 +23,8 @@
 bool do_quit = false;
 bool do_blank = false;
 bool do_filter = true;
+bool do_undist = false;
 bool find_plane = false;
-bool do_undistort = false;
 
 void usr1handler(int signal) { do_blank = !do_blank; }
 void usr2handler(int signal) { do_filter = !do_filter; }
@@ -31,37 +33,21 @@ Camera* cam = nullptr;
 
 void handle_key(const char* key) {
 
-  // reset perspective matrix
-  if (key == std::string("space"))
-    cam->calib.reset();
+  // normalize GstEvent keys
+  if (key == std::string("space")) key = " ";
+  if (key == std::string( "plus")) key = "+";
+  if (key == std::string("minus")) key = "-";
 
-  // autocalibrate
-  if (key == std::string("a"))
-    cam->autocalib = true;
+  if (key == std::string(" ")) cam->calib.reset();    // reset calibration
+  if (key == std::string("s")) cam->saveConfig();     // save
 
-  // find largest plane
-  if (key == std::string("p"))
-    find_plane = true;
+  if (key == std::string("a")) cam->autocalib = true; // autocalibrate
+  if (key == std::string("p")) find_plane = true;     // find largest plane
+  if (key == std::string("q")) do_quit = true;        // quit
 
-  // subtract plane
-  if (key == std::string("f"))
-    do_filter = !do_filter;
-
-  // blank
-  if (key == std::string("b"))
-    do_blank = !do_blank;
-
-  // quit
-  if (key == std::string("q"))
-    do_quit = true;
-
-  // save
-  if (key == std::string("s"))
-    cam->saveConfig();
-
-  // undistort
-  if (key == std::string("u"))
-    do_undistort = !do_undistort;
+  if (key == std::string("f")) do_filter = !do_filter; // subtract plane
+  if (key == std::string("u")) do_undist = !do_undist; // undistort
+  if (key == std::string("b")) do_blank = !do_blank;   // blank
 
   // change plane distance threshold
   /*if (key == std::string( "plus")) distance += 0.2;
@@ -98,6 +84,27 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
   return true;
 }
+
+// cf. https://www.funwithlinux.net/blog/receiving-key-press-and-key-release-events-in-linux-terminal-applications/
+struct termios original_termios;
+
+// set terminal to raw mode
+void terminal_raw_mode() {
+  tcgetattr(STDIN_FILENO, &original_termios);
+  struct termios raw = original_termios;
+  raw.c_lflag &= ~(ICANON | ECHO); // disable canonical mode and echo
+  raw.c_cc[VMIN] = 0;  // non-blocking mode
+  raw.c_cc[VTIME] = 0; // no timeout
+  tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+}
+
+void terminal_test_keys() {
+  char c[2] = {0,0};
+  int res = read(STDIN_FILENO, c, 1);
+  if (res < 1) return;
+  handle_key(c);
+}
+
 
 int main(int argc, char* argv[]) {
 
@@ -169,13 +176,16 @@ int main(int argc, char* argv[]) {
 #endif
 
   cam->setPadHandler(pad_event);
+  terminal_raw_mode();
 
   while (!do_quit) {
 
+    terminal_test_keys();
+
     cam->retrieve_frames();
 
-    if (do_undistort) cam->undistort();
-    if (find_plane) cam->ransac_plane();
+    if (do_undist) cam->undistort();
+    if (find_plane) { cam->ransac_plane(); find_plane = false; }
     if (cam->autocalib) cam->autoPerspective();
 
     cam->remove_background();
@@ -183,5 +193,7 @@ int main(int argc, char* argv[]) {
     cam->send_buffer();
   }
 
+  // restore terminal settings on exit
+  tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
   return 0;
 }
