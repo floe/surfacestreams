@@ -96,13 +96,13 @@ void KinectAzure::map_to_color() {
 
 			uint32_t* buffer = (uint32_t*)colorImage.get_buffer();
 			uint16_t* depthData = (uint16_t*)transformed_depth_image.get_buffer();
-			if (do_filter) {
+			//if (do_filter) {
 				for (int index = 0; index < cw*ch; index++) {
 					uint16_t dv = depthData[index];
 					if (dv == 0) 
 						buffer[index] = 0x0000FF00;
 				}
-			}
+			//}
 
 			input = cv::Mat(colorImage.get_height_pixels(),colorImage.get_width_pixels(),CV_8UC4,(uint8_t*)colorImage.get_buffer());
 }

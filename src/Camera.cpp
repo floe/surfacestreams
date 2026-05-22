@@ -121,7 +121,7 @@ void buffer_destroy(gpointer data) {
   delete done;
 }
 
-void Camera::send_buffer() {
+void Camera::send_buffer( bool do_blank ) {
 
   if (input.total() == 0) return;
 

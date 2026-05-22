@@ -90,7 +90,8 @@ void Realsense::remove_background() {
     int width = depth_frame.get_width();
     int height = depth_frame.get_height();
 
-    if (do_filter) Camera::remove_background();
+    // if (do_filter)
+    Camera::remove_background();
 
     // Query the distance from the camera to the object in the center of the image
     float dist_to_center = depth_frame.get_distance(width / 2, height / 2);

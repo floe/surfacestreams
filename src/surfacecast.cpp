@@ -187,10 +187,9 @@ int main(int argc, char* argv[]) {
     if (do_undist) cam->undistort();
     if (find_plane) { cam->ransac_plane(); find_plane = false; }
     if (cam->autocalib) cam->autoPerspective();
+    if (do_filter) cam->remove_background();
 
-    cam->remove_background();
-
-    cam->send_buffer();
+    cam->send_buffer( do_blank );
   }
 
   // restore terminal settings on exit

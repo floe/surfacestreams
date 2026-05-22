@@ -6,9 +6,6 @@
 #include <TuioOverlay.h>
 #include <Calibrator.h>
 
-extern bool do_filter;
-extern bool do_blank;
-
 class Camera {
 
 	public:
@@ -17,7 +14,7 @@ class Camera {
 
 		virtual void retrieve_frames() = 0;
 		virtual void remove_background();
-		virtual void send_buffer();
+		virtual void send_buffer( bool do_blank = false );
 		virtual void remove_background(float start, float end);
 
 		void setPadHandler( GstPadEventFunction pad_event );
