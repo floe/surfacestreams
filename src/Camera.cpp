@@ -71,9 +71,6 @@ void Camera::undistort() {
 #include <gst/gst.h>
 #include <gst/app/gstappsrc.h>
 
-#include <stdint.h>
-#include <string.h>
-
 void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
   /* init GStreamer */
@@ -114,10 +111,8 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
 void Camera::setPadHandler( GstPadEventFunction pad_event ) {
   // attach event listener to suitable src pad (either appsrc or videoconvert)
-  // FIXME: ugly hack, hardcoded element name
-  GstElement* display = gst_bin_get_by_name( (GstBin*)gpipeline, "display" );
-  GstPad* srcpad = gst_element_get_static_pad (display?display:appsrc, "src");
-  gst_pad_set_event_function( srcpad, (GstPadEventFunction)pad_event );
+  GstPad* srcpad = gst_element_get_static_pad( appsrc, "src" );
+  gst_pad_set_event_function( srcpad, pad_event );
   gst_pad_set_element_private( srcpad, (gpointer)this);
 }
 

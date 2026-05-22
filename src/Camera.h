@@ -1,7 +1,6 @@
 #ifndef _CAMERA_H_
 #define _CAMERA_H_
 
-#include <vector>
 #include <opencv2/core/core.hpp>
 #include <gst/gst.h>
 #include <TuioOverlay.h>

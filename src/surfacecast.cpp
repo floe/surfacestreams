@@ -7,6 +7,9 @@
 #include "SUR40.h"
 #include "VirtualCam.h"
 
+#include <gst/gst.h>
+#include <gst/video/navigation.h>
+
 #ifdef REALSENSE
   #include "Realsense.h"
 #endif
@@ -24,12 +27,6 @@ void usr1handler(int signal) { do_blank = !do_blank; }
 void usr2handler(int signal) { do_filter = !do_filter; }
 
 Camera* cam = nullptr;
-
-#include <gst/gst.h>
-#include <gst/video/navigation.h>
-
-#include <stdint.h>
-#include <string.h>
 
 void handle_key(const char* key) {
 
@@ -75,7 +72,7 @@ gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
 
   double x,y; int b;
   const gchar* key;
-  Camera* cam = (Camera*)gst_pad_get_element_private(pad);
+  //Camera* cam = (Camera*)gst_pad_get_element_private(pad);
 
   switch (gst_navigation_event_get_type(event)) {
 
