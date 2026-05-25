@@ -18,6 +18,13 @@ ifneq ($(wildcard /usr/include/librealsense2/),)
 	OBJECTS+=Realsense.o
 endif
 
+# check for libcamera include files
+ifneq ($(wildcard /usr/include/libcamera/),)
+	CCFLAGS+=-DLIBCAMERA $(shell pkg-config --cflags libcamera)
+	LDFLAGS+=$(shell pkg-config --libs libcamera)
+	OBJECTS+=Libcamera.o
+endif
+
 all: ${TARGETS}
 
 tuio11/libTUIO.a:

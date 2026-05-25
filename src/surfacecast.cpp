@@ -20,6 +20,10 @@
   #include "KinectAzure.h"
 #endif
 
+#ifdef LIBCAMERA
+  #include "Libcamera.h"
+#endif
+
 #define bool_debug(x) #x << ": " << (x?"true, ":"false,")  << " "
 
 bool do_quit = false;
@@ -163,6 +167,9 @@ int main(int argc, char* argv[]) {
 #ifdef K4A
     std::cout << "        k4a      <devnum> - Kinect Azure depth camera" << std::endl;
 #endif
+#ifdef LIBCAMERA
+    std::cout << "  libcamera </dev/videoX> - libcamera device (e.g. Raspberry Pi camera)" << std::endl;
+#endif
     std::cout << std::endl;
     return 1;
   }
@@ -179,6 +186,10 @@ int main(int argc, char* argv[]) {
 
 #ifdef K4A
   if (camtype == "k4a") cam = new KinectAzure(gstpipe);
+#endif
+
+#ifdef LIBCAMERA
+  if (camtype == "libcamera") cam = new Libcamera(gstpipe,device,in_w,in_h);
 #endif
 
   cam->setPadHandler(pad_event);
