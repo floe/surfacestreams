@@ -47,7 +47,7 @@ cv::FileStorage Camera::saveConfig() {
   file << "perspective" << calib.pm;
   file << "camMat" << camMat;
   file << "distCoeffs" << distCoeffs;
-  std::cout << "configuration saved to config.xml" << std::endl;
+  std::cout << "Configuration saved to config.xml." << std::endl;
   return file;
 }
 

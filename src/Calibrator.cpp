@@ -21,7 +21,7 @@ Calibrator::Calibrator(int _cw, int _ch, int _tw, int _th ) {
   detector = aruco::ArucoDetector(dictionary, detectorParams);
 }
 
-void Calibrator::reset() { pm = im; }
+void Calibrator::reset() { pm = im; std::cout << "Perspective calibration reset." << std::endl; }
 void Calibrator::draw(Mat* output) { for (Point2f point: src) cv::rectangle(*output,point,point,Scalar(0,0,255),10); }
 
 Mat Calibrator::calcPerspective() {

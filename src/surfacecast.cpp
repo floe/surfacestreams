@@ -20,6 +20,8 @@
   #include "KinectAzure.h"
 #endif
 
+#define bool_debug(x) #x << ": " << (x?"true, ":"false,")  << " "
+
 bool do_quit = false;
 bool do_blank = false;
 bool do_filter = true;
@@ -55,6 +57,8 @@ void handle_key(const char* key) {
   if (key == std::string("minus")) distance -= 0.2;
 
   std::cout << "current plane distance: " << distance << " cm " << std::endl;*/
+
+  std::cout << bool_debug(autocalib) << bool_debug(find_plane) << bool_debug(do_filter) << bool_debug(do_undist) << bool_debug(do_blank) << std::endl;
 }
 
 gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
