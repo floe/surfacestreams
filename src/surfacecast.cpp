@@ -24,6 +24,7 @@ bool do_quit = false;
 bool do_blank = false;
 bool do_filter = true;
 bool do_undist = false;
+bool autocalib = false;
 bool find_plane = false;
 
 void usr1handler(int signal) { do_blank = !do_blank; }
@@ -38,12 +39,12 @@ void handle_key(const char* key) {
   if (key == std::string( "plus")) key = "+";
   if (key == std::string("minus")) key = "-";
 
-  if (key == std::string(" ")) cam->calib.reset();    // reset calibration
-  if (key == std::string("s")) cam->saveConfig();     // save
+  if (key == std::string(" ")) cam->calib.reset();     // reset calibration
+  if (key == std::string("s")) cam->saveConfig();      // save
 
-  if (key == std::string("a")) cam->autocalib = true; // autocalibrate
-  if (key == std::string("p")) find_plane = true;     // find largest plane
-  if (key == std::string("q")) do_quit = true;        // quit
+  if (key == std::string("a")) autocalib = true;       // autocalibrate
+  if (key == std::string("p")) find_plane = true;      // find largest plane
+  if (key == std::string("q")) do_quit = true;         // quit
 
   if (key == std::string("f")) do_filter = !do_filter; // subtract plane
   if (key == std::string("u")) do_undist = !do_undist; // undistort
@@ -108,6 +109,7 @@ void terminal_test_keys() {
 
 int main(int argc, char* argv[]) {
 
+  // TODO: not sure if these are still needed now that we have a terminal interface
   signal(SIGUSR1,&usr1handler);
   signal(SIGUSR2,&usr2handler);
 
@@ -186,7 +188,7 @@ int main(int argc, char* argv[]) {
 
     if (do_undist) cam->undistort();
     if (find_plane) { cam->ransac_plane(); find_plane = false; }
-    if (cam->autocalib) cam->autoPerspective();
+    if (autocalib) autocalib = cam->auto_perspective();
     if (do_filter) cam->remove_background();
 
     cam->send_buffer( do_blank );

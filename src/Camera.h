@@ -20,11 +20,10 @@ class Camera {
 		void setPadHandler( GstPadEventFunction pad_event );
 
 		virtual void ransac_plane();
-		void autoPerspective();
+		bool auto_perspective();
 		void undistort();
 
 		Calibrator calib;
-		bool autocalib;
 
 		virtual cv::FileStorage saveConfig();
 		virtual cv::FileStorage loadConfig();

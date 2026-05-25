@@ -23,8 +23,6 @@ Camera::Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw, 
   loadConfig();
   gstreamer_init(_type,_pipe);
 
-  autocalib = false;
-
   // init undistortion maps
   Mat newCam = getOptimalNewCameraMatrix( camMat, distCoeffs, Size(cw,ch), 0.5 );
   initUndistortRectifyMap( camMat, distCoeffs, Mat(), newCam, Size(cw,ch), CV_16SC2, map1, map2);
@@ -53,11 +51,10 @@ cv::FileStorage Camera::saveConfig() {
   return file;
 }
 
-void Camera::autoPerspective() { autocalib = calib.autoPerspective(input); }
+bool Camera::auto_perspective() { return calib.autoPerspective(input); }
 void Camera::ransac_plane() { } // unimplemented, only makes sense for DepthCamera
 
 void Camera::undistort() {
-  // TODO: override this in any camera subclass
   Mat tmp;
   remap(input,tmp,map1,map2,INTER_LINEAR);
   input = tmp;
