@@ -31,7 +31,7 @@
 *.out
 *.app
 
-surfacecast
+surfacestreams
 *.dot
 
 config.xml
