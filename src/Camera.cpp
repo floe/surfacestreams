@@ -52,6 +52,7 @@ cv::FileStorage Camera::saveConfig() {
 }
 
 bool Camera::auto_perspective() { return calib.autoPerspective(input); }
+void Camera::release_frames() { } // unimplemented, only needed for Libcamera
 void Camera::ransac_plane() { } // unimplemented, only makes sense for DepthCamera
 
 void Camera::undistort() {

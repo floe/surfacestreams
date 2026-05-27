@@ -20,6 +20,10 @@
   #include "KinectAzure.h"
 #endif
 
+#ifdef LIBCAMERA
+  #include "Libcamera.h"
+#endif
+
 #define bool_debug(x) #x << ": " << (x?"true, ":"false,")  << " "
 
 bool do_quit = false;
@@ -156,6 +160,9 @@ int main(int argc, char* argv[]) {
     std::cout << "       v4l2 </dev/videoX> - standard V4L2 device (webcam)" << std::endl;
     std::cout << "      sur40 </dev/videoX> - SUR40 video device" << std::endl;
     std::cout << "    virtcam     <ignored> - virtual camera device" << std::endl;
+#ifdef LIBCAMERA
+    std::cout << "  libcamera </dev/videoX> - libcamera device (e.g. Raspberry Pi camera)" << std::endl;
+#endif
 #ifdef REALSENSE
     // FIXME: devnum not implemented yet
     std::cout << "  realsense      <devnum> - Intel RealSense depth camera" << std::endl;
@@ -173,10 +180,12 @@ int main(int argc, char* argv[]) {
   if (camtype ==   "sur40") cam = new SUR40(gstpipe,device);
   if (camtype == "virtcam") cam = new VirtualCam(gstpipe);
 
+#ifdef LIBCAMERA
+  if (camtype == "libcamera") cam = new Libcamera(gstpipe,device,in_w,in_h);
+#endif
 #ifdef REALSENSE
   if (camtype == "realsense") cam = new Realsense(gstpipe);
 #endif
-
 #ifdef K4A
   if (camtype == "k4a") cam = new KinectAzure(gstpipe);
 #endif
@@ -196,6 +205,7 @@ int main(int argc, char* argv[]) {
     if (do_filter) cam->remove_background();
 
     cam->send_buffer( do_blank );
+    cam->release_frames();
   }
 
   // restore terminal settings on exit

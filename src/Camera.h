@@ -13,6 +13,7 @@ class Camera {
 		Camera(const char* _pipe, const char* _type, int _cw, int _ch, int _tw = 1280, int _th = 720 );
 
 		virtual void retrieve_frames() = 0;
+		virtual void release_frames();
 		virtual void remove_background();
 		virtual void send_buffer( bool do_blank = false );
 		virtual void remove_background(float start, float end);
