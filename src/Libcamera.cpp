@@ -110,8 +110,10 @@ void Libcamera::retrieve_frames() {
   void* data = mapped_buffers.at(plane.fd.get()).data;
   int stride = config->at(0).stride;
 
+  // FIXME: the .clone() is an unneeded buffer copy,
+  // but OpenCV has performance problems with mmap-ed buffers
   // wrap the mapped data in a cv::Mat and assign to result
-  input = cv::Mat(ch, cw, CV_8UC3, data, stride);
+  input = cv::Mat(ch, cw, CV_8UC3, data, stride).clone();
 }
 
 void Libcamera::release_frames() {
