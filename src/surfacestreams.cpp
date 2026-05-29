@@ -40,6 +40,8 @@ Camera* cam = nullptr;
 
 void handle_key(const char* key) {
 
+  if (!key || key == std::string("")) return;
+
   // normalize GstEvent keys
   if (key == std::string("space")) key = " ";
   if (key == std::string( "plus")) key = "+";
@@ -62,7 +64,7 @@ void handle_key(const char* key) {
 
   std::cout << "current plane distance: " << distance << " cm " << std::endl;*/
 
-  std::cout << bool_debug(autocalib) << bool_debug(find_plane) << bool_debug(do_filter) << bool_debug(do_undist) << bool_debug(do_blank) << std::endl;
+  if (!do_quit) std::cout << bool_debug(autocalib) << bool_debug(find_plane) << bool_debug(do_filter) << bool_debug(do_undist) << bool_debug(do_blank) << std::endl;
 }
 
 gboolean pad_event(GstPad *pad, GstObject *parent, GstEvent *event) {
@@ -107,11 +109,10 @@ void terminal_raw_mode() {
   tcsetattr(STDIN_FILENO, TCSANOW, &raw);
 }
 
-void terminal_test_keys() {
-  char c[2] = {0,0};
+const char* terminal_get_keys() {
+  static char c[2] = {0,0};
   int res = read(STDIN_FILENO, c, 1);
-  if (res < 1) return;
-  handle_key(c);
+  return (res < 1) ? "" : c;
 }
 
 
@@ -195,7 +196,7 @@ int main(int argc, char* argv[]) {
 
   while (!do_quit) {
 
-    terminal_test_keys();
+    handle_key(terminal_get_keys());
 
     cam->retrieve_frames();
 
@@ -210,5 +211,6 @@ int main(int argc, char* argv[]) {
 
   // restore terminal settings on exit
   tcsetattr(STDIN_FILENO, TCSANOW, &original_termios);
+  std::cout << "\nExiting..." << std::endl;
   return 0;
 }
