@@ -145,9 +145,9 @@ void Camera::send_buffer( bool do_blank ) {
 
   Mat* output = new Mat(th,tw,input.type());
 
+  if (do_blank) output->setTo(Scalar(0,255,0)); else
   warpPerspective(input,*output,calib.pm,output->size(),INTER_LINEAR);
-
-  if (do_blank) output->setTo(Scalar(0,255,0));
+  //std::cout << describe_mat(input) << " " describe_mat((*output)) << std::endl;
 
   calib.draw(output);
   overlay.process(output);
