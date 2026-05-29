@@ -58,11 +58,13 @@ Libcamera::Libcamera(const char* pipe, const char* dev, int _cw, int _ch):
 
   // cf. https://stackoverflow.com/a/78632543/
   libcamera::ControlList camcontrols;
-  camcontrols.set(libcamera::controls::FrameDurationLimits, libcamera::Span<const std::int64_t, 2>({60000, 70000}));
+  libcamera::Span<const std::int64_t, 2> span({60000, 70000});
+  camcontrols.set(libcamera::controls::FrameDurationLimits, span);
+  // req->controls().set(libcamera::controls::FrameDurationLimits, span);
 
   // connect the requestCompleted signal and start
   camera->requestCompleted.connect(this, &Libcamera::request_completed);
-  if (camera->start(&camcontrols) < 0) throw std::runtime_error("Failed to start camera.");
+  if (camera->start(0) < 0) throw std::runtime_error("Failed to start camera.");
 
   // enqueue all streaming requests
   for (auto& req: requests) if (camera->queueRequest(req.get()) < 0) throw std::runtime_error("Failed to queue streaming request.");
