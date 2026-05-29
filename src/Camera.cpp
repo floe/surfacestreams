@@ -143,6 +143,10 @@ void Camera::send_buffer( bool do_blank ) {
 
   if (input.total() == 0) return;
 
+  // start a new timing run
+  tm.stop(); tm.start();
+  std::cout << "FPS: " << tm.getFPS() << "\r" << std::flush;
+
   Mat* output = new Mat(th,tw,input.type());
 
   if (do_blank) output->setTo(Scalar(0,255,0)); else
@@ -155,8 +159,6 @@ void Camera::send_buffer( bool do_blank ) {
   guint size = output->total()*output->elemSize();
   gpointer data = output->data;
   void* frame = output;
-
-  //prepare_buffer(IN_W*IN_H*4,output->data,output);
 
   GstBuffer *buffer = gst_buffer_new_wrapped_full( (GstMemoryFlags)0, data, size, 0, size, frame, buffer_destroy );
 

@@ -25,6 +25,7 @@ class Camera {
 		void undistort();
 
 		Calibrator calib;
+		cv::TickMeter tm;
 
 		virtual cv::FileStorage saveConfig();
 		virtual cv::FileStorage loadConfig();
