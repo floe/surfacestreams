@@ -33,7 +33,14 @@ board = cboard
 
 charuco_detector = cv.aruco.CharucoDetector(cboard)
 
-cap = cv.VideoCapture(0)
+cap = cv.VideoCapture(0,cv.CAP_V4L2)
+cap.set(cv.CAP_PROP_FOURCC, cv.VideoWriter_fourcc(*"MJPG"))
+cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, 720)
+width = cap.get(cv.CAP_PROP_FRAME_WIDTH)
+height = cap.get(cv.CAP_PROP_FRAME_HEIGHT)
+print(width, height)
+
 cv.namedWindow('frame', cv.WINDOW_GUI_NORMAL)
 
 all_obj_points = []
@@ -61,7 +68,7 @@ while True:
     img_points = []
 
     if marker_ids is not None and len(marker_ids) >= 0:
-        obj_points, img_points = board.matchImagePoints( marker_corners, marker_ids ) # or charuco_{corners,ids}
+        obj_points, img_points = gboard.matchImagePoints( marker_corners, marker_ids ) # or charuco_{corners,ids}
 
     cv.aruco.drawDetectedMarkers(gray, marker_corners, marker_ids)
 
@@ -73,11 +80,11 @@ while True:
     key = cv.waitKey(10)
     if key == ord('q'):
         break
-    if key == ord(' '):
+    if key == ord('s'):
         all_obj_points.append(obj_points)
         all_img_points.append(img_points)
-    if key == ord('\n'):
-        ret, cammat, distcoeffs = cv.calibrateCamera( all_obj_points, all_img_points, gray.size, None, None )
+    if key == ord('x'):
+        ret, cammat, distcoeffs, rv, tv = cv.calibrateCamera( all_obj_points, all_img_points, gray.shape[::-1], None, None )
         print(cammat,distcoeffs)
 
 exit
