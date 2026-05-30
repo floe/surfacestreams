@@ -100,7 +100,7 @@ void Camera::gstreamer_init(const char* type, const char* gstpipe) {
 
   // create pipeline from string
   const char* pipe_desc = gstpipe ? gstpipe : "videoconvert ! fpsdisplaysink sync=false";
-  std::cout << "creating pipeline: " << pipe_desc << std::endl;
+  std::cout << "Creating output pipeline: " << pipe_desc << std::endl;
   videosink = gst_parse_bin_from_description(pipe_desc,TRUE,NULL);
 
   /* setup */

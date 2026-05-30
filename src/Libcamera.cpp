@@ -139,5 +139,5 @@ void Libcamera::retrieve_frames() {
 }
 
 void Libcamera::release_frames() {
-  for (auto& c: cam) c->release_frames();
+  for (auto& c: cam) if (c) c->release_frames();
 }
