@@ -15,10 +15,20 @@ Libcamera::Libcamera(const char* pipe, const char* dev, int _cw, int _ch):
   // select camera by name first, try by index if not found
   auto cameras = cm->cameras();
   unsigned int idx = dev[0] - '0';
-  camera = cm->get(dev);
+  auto camera = cm->get(dev);
 
   if (!camera) camera = (idx < cameras.size()) ? cameras[idx] : nullptr;
   if (!camera) throw std::runtime_error(std::string("Failed to find camera: ") + dev);
+
+  cam[0] = new LibCamWrapper(camera,_cw,_ch);
+}
+
+LibCamWrapper::LibCamWrapper(std::shared_ptr<libcamera::Camera> dev, int _cw, int _ch) {
+
+  camera = dev;
+  cw = _cw;
+  ch = _ch;
+
   if (camera->acquire() < 0) throw std::runtime_error("Failed to acquire camera.");
 
   // generate, validate, apply a VideoRecording configuration
@@ -63,14 +73,14 @@ Libcamera::Libcamera(const char* pipe, const char* dev, int _cw, int _ch):
   // req->controls().set(libcamera::controls::FrameDurationLimits, span);
 
   // connect the requestCompleted signal and start
-  camera->requestCompleted.connect(this, &Libcamera::request_completed);
+  camera->requestCompleted.connect(this, &LibCamWrapper::request_completed);
   if (camera->start(0) < 0) throw std::runtime_error("Failed to start camera.");
 
   // enqueue all streaming requests
   for (auto& req: requests) if (camera->queueRequest(req.get()) < 0) throw std::runtime_error("Failed to queue streaming request.");
 }
 
-Libcamera::~Libcamera() {
+LibCamWrapper::~LibCamWrapper() {
   camera->stop();
   //allocator->free(stream);
   delete allocator;
@@ -80,20 +90,23 @@ Libcamera::~Libcamera() {
 
   camera->release();
   camera.reset();
+}
 
+Libcamera::~Libcamera() {
+  delete cam[0];
   cm->stop();
   delete cm;
 }
 
 // callback for completed streaming requests
-void Libcamera::request_completed(libcamera::Request* request) {
+void LibCamWrapper::request_completed(libcamera::Request* request) {
   if (request->status() == libcamera::Request::RequestCancelled) return;
   std::lock_guard<std::mutex> lock(frame_mutex);
   completed_requests.push(request);
   frame_ready.notify_all();
 }
 
-void Libcamera::retrieve_frames() {
+cv::Mat LibCamWrapper::retrieve_frames() {
   // wait for a completed request (block scope for lock)
   {
     std::unique_lock<std::mutex> lock(frame_mutex);
@@ -107,17 +120,24 @@ void Libcamera::retrieve_frames() {
   libcamera::FrameBuffer* buf = request->buffers().at(stream);
   const libcamera::FrameBuffer::Plane& plane = buf->planes()[0];
 
+ // wrap the mapped data in a cv::Mat and return
   void* data = mapped_buffers.at(plane.fd.get()).data;
   int stride = config->at(0).stride;
-
-  // FIXME: the .clone() is an unneeded buffer copy,
-  // but OpenCV has performance problems with mmap-ed buffers
-  // wrap the mapped data in a cv::Mat and assign to result
-  input = cv::Mat(ch, cw, CV_8UC3, data, stride).clone();
+  return cv::Mat(ch, cw, CV_8UC3, data, stride);
 }
 
-void Libcamera::release_frames() {
+void LibCamWrapper::release_frames() {
   // requeue the finished request for the next frame
   request->reuse(libcamera::Request::ReuseBuffers);
   camera->queueRequest(request);
+}
+
+void Libcamera::retrieve_frames() {
+  // FIXME: the .clone() is an unneeded buffer copy,
+  // but OpenCV has performance problems with mmap-ed buffers
+  input = cam[0]->retrieve_frames().clone();
+}
+
+void Libcamera::release_frames() {
+  for (auto& c: cam) c->release_frames();
 }

@@ -11,20 +11,26 @@
 
 #include <libcamera/libcamera.h>
 
-class Libcamera: public Camera {
+struct MappedBuffer {
+	void* data;
+	size_t size;
+};
+
+class LibCamWrapper {
 
 	public:
 
-		Libcamera(const char* pipe, const char* dev, int cw, int ch);
-		~Libcamera();
+		LibCamWrapper(std::shared_ptr<libcamera::Camera> dev, int _cw, int _ch);
+		~LibCamWrapper();
 
-		void retrieve_frames();
+		cv::Mat retrieve_frames();
 		void release_frames();
 
 	private:
 
+		int cw,ch;
+
 		// libcamera helper & config objects
-		libcamera::CameraManager* cm;
 		std::shared_ptr<libcamera::Camera> camera;
 		std::unique_ptr<libcamera::CameraConfiguration> config;
 		libcamera::FrameBufferAllocator* allocator;
@@ -40,11 +46,24 @@ class Libcamera: public Camera {
 		std::queue<libcamera::Request*> completed_requests;
 
 		// memory-mapped frame buffers: fd -> (pointer, size)
-		struct MappedBuffer {
-			void* data;
-			size_t size;
-		};
 		std::map<int, MappedBuffer> mapped_buffers;
+};
+
+class Libcamera: public Camera {
+
+	public:
+
+		Libcamera(const char* pipe, const char* dev, int cw, int ch);
+		~Libcamera();
+
+		void retrieve_frames();
+		void release_frames();
+
+	private:
+
+		libcamera::CameraManager* cm;
+		LibCamWrapper* cam[2];
+
 };
 
 #endif // _LIBCAMERA_H_
