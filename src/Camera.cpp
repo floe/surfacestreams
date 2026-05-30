@@ -24,7 +24,7 @@ std::string type2str(int type) {
     case CV_64F: r += "64F"; break;
     default:     r += "???"; break;
   }
-  return (r + "C") += chans;;
+  return (r + "C") += chans;
 }
 
 #define describe_mat(mat) #mat << " type:" << type2str(mat.type()) << " ch:" << mat.channels() << " el:" << mat.elemSize() << " dim:" << mat.size() << " step:" << mat.step << " total:" << mat.total()
