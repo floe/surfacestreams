@@ -12,6 +12,7 @@
 
 #include <libcamera/formats.h>
 
+// DMA heap, modeled on rpicam-apps/core/rpicam_app.cpp
 static const std::vector<const char*> heap_names = {
   "/dev/dma_heap/vidbuf_cached",
   "/dev/dma_heap/linux,cma",
@@ -26,7 +27,7 @@ DmaHeap::DmaHeap() {
   throw std::runtime_error("No suitable DMA heap found.");
 }
 
-libcamera::UniqueFD DmaHeap::allocate(const std::string name, std::size_t size) {
+libcamera::SharedFD DmaHeap::allocate(const std::string name, std::size_t size) {
 
   struct dma_heap_allocation_data alloc = {
     .len = size,
@@ -39,7 +40,7 @@ libcamera::UniqueFD DmaHeap::allocate(const std::string name, std::size_t size) 
   if (ioctl(alloc.fd, DMA_BUF_SET_NAME, name.c_str()) < 0)
     throw std::runtime_error("Failed to set name for DMA heap buffer.");
 
-  return libcamera::UniqueFD(alloc.fd);
+  return libcamera::SharedFD(alloc.fd);
 }
 
 Libcamera::Libcamera(const char* pipe, const char* dev, int _cw, int _ch):
@@ -81,11 +82,16 @@ LibCamWrapper::LibCamWrapper(std::shared_ptr<libcamera::Camera> dev, int _cw, in
 
   // allocate frame buffers
   libcamera::Stream* stream = streamcfg.stream();
-  allocator = new libcamera::FrameBufferAllocator(camera);
-  if (allocator->allocate(stream) < 0) throw std::runtime_error("Failed to allocate frame buffers.");
+  for (unsigned int i = 0; i < streamcfg.bufferCount; i++) {
 
-  // for each frame buffer:
-  for (const std::unique_ptr<libcamera::FrameBuffer>& buf: allocator->buffers(stream)) {
+    // create a single-plane framebuffer via DMA heap
+    std::vector<libcamera::FrameBuffer::Plane> planes(1);
+    planes[0].fd = dma_heap.allocate("surfacestreams-"+std::to_string(i), streamcfg.frameSize);
+    planes[0].offset = 0;
+    planes[0].length = streamcfg.frameSize;
+
+    framebuffers.push_back(std::make_unique<libcamera::FrameBuffer>(planes));
+    std::unique_ptr<libcamera::FrameBuffer>& buf = framebuffers.back();
 
     // memory-map first buffer plane (TODO: wouldn't work with multi-plane buffers)
     const libcamera::FrameBuffer::Plane& plane = buf->planes()[0];
@@ -118,11 +124,12 @@ LibCamWrapper::LibCamWrapper(std::shared_ptr<libcamera::Camera> dev, int _cw, in
 
 LibCamWrapper::~LibCamWrapper() {
   camera->stop();
-  //allocator->free(stream);
-  delete allocator;
 
   for (auto& [fd, mb] : mapped_buffers)
     munmap(mb.data, mb.size);
+
+  requests.clear();
+  framebuffers.clear();
 
   camera->release();
   camera.reset();
@@ -169,9 +176,7 @@ void LibCamWrapper::release_frames() {
 }
 
 void Libcamera::retrieve_frames() {
-  // FIXME: the .clone() is an unneeded buffer copy,
-  // but OpenCV has performance problems with mmap-ed buffers
-  input = cam[0]->retrieve_frames().clone();
+  input = cam[0]->retrieve_frames();
 }
 
 void Libcamera::release_frames() {

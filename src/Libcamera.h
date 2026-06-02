@@ -19,7 +19,7 @@ struct MappedBuffer {
 class DmaHeap {
 	public:
 		DmaHeap();
-		libcamera::UniqueFD allocate(const std::string name, std::size_t size);
+		libcamera::SharedFD allocate(const std::string name, std::size_t size);
 	protected:
 		libcamera::UniqueFD heap_fd;
 };
@@ -41,7 +41,10 @@ class LibCamWrapper {
 		// libcamera helper & config objects
 		std::shared_ptr<libcamera::Camera> camera;
 		std::unique_ptr<libcamera::CameraConfiguration> config;
-		libcamera::FrameBufferAllocator* allocator;
+
+		// dma heap allocator & buffers
+		DmaHeap dma_heap;
+		std::vector<std::unique_ptr<libcamera::FrameBuffer>> framebuffers;
 
 		// callback and variable for most recent completed request
 		std::vector<std::unique_ptr<libcamera::Request>> requests;
