@@ -18,11 +18,7 @@ static const std::vector<const char*> heap_names = {
   "/dev/dma_heap/system"
 };
 
-class DmaHeap {
-
-  public:
-
-    DmaHeap() {
+    DmaHeap::DmaHeap() {
       for (const char* name: heap_names) {
         int fd = open(name, O_RDWR | O_CLOEXEC, 0);
         if (fd > 0) { heap_fd = libcamera::UniqueFD(fd); return; }
@@ -30,7 +26,7 @@ class DmaHeap {
       throw std::runtime_error("No suitable DMA heap found.");
     }
 
-    libcamera::UniqueFD allocate(const char* name, std::size_t size) {
+    libcamera::UniqueFD DmaHeap::allocate(const std::string name, std::size_t size) {
 
       struct dma_heap_allocation_data alloc = {
         .len = size,
@@ -38,18 +34,13 @@ class DmaHeap {
       };
 
       if (ioctl(heap_fd.get(), DMA_HEAP_IOCTL_ALLOC, &alloc) < 0)
-      	throw std::runtime_error("Failed to allocate DMA heap buffer.");
+        throw std::runtime_error("Failed to allocate DMA heap buffer.");
 
-      if (ioctl(alloc.fd, DMA_BUF_SET_NAME, name) < 0) 
-      	throw std::runtime_error("Failed to set name for DMA heap buffer.");
+      if (ioctl(alloc.fd, DMA_BUF_SET_NAME, name.c_str()) < 0)
+        throw std::runtime_error("Failed to set name for DMA heap buffer.");
 
       return libcamera::UniqueFD(alloc.fd);
     }
-
-  protected:
-
-    libcamera::UniqueFD heap_fd;
-};
 
 Libcamera::Libcamera(const char* pipe, const char* dev, int _cw, int _ch):
   Camera(pipe, "BGR", _cw, _ch)

@@ -16,6 +16,14 @@ struct MappedBuffer {
 	size_t size;
 };
 
+class DmaHeap {
+	public:
+		DmaHeap();
+		libcamera::UniqueFD allocate(const std::string name, std::size_t size);
+	protected:
+		libcamera::UniqueFD heap_fd;
+};
+
 class LibCamWrapper {
 
 	public:
