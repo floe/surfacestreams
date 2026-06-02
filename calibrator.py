@@ -46,6 +46,11 @@ cv.namedWindow("frame", cv.WINDOW_GUI_NORMAL)
 all_obj_points = []
 all_img_points = []
 
+config_file = cv.FileStorage("config.xml", cv.FILE_STORAGE_READ)
+perspmat = config_file.getNode("perspective").mat()
+cammat = config_file.getNode("camMat").mat()
+distcoeffs = config_file.getNode("distCoeffs").mat()
+
 if not cap.isOpened():
     print("Open camera failed, exiting...")
     exit()
@@ -79,10 +84,16 @@ while True:
     if key == ord('q'):
         break
     if key == ord('s'):
+        config_file = cv.FileStorage("config.xml", cv.FILE_STORAGE_WRITE)
+        config_file.write("perspective",perspmat)
+        config_file.write("camMat",cammat)
+        config_file.write("distCoeffs",distcoeffs)
+    if key == ord(' '):
         if len(obj_points) == 0 or len(img_points) == 0:
             continue
         all_obj_points.append(obj_points)
         all_img_points.append(img_points)
+        print("Total samples: ",len(obj_points))
     if key == ord('x'):
         ret, cammat, distcoeffs, rv, tv = cv.calibrateCamera( all_obj_points, all_img_points, gray.shape[::-1], None, None )
         print(cammat,distcoeffs)
