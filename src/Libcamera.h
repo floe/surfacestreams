@@ -60,7 +60,7 @@ class LibCamWrapper {
 		std::map<int, MappedBuffer> mapped_buffers;
 };
 
-class Libcamera: public Camera {
+class Libcamera: virtual public Camera {
 
 	public:
 

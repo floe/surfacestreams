@@ -5,7 +5,7 @@
 #include <opencv2/core/core.hpp>
 #include <PlaneModel.h>
 
-class DepthCamera: public Camera {
+class DepthCamera: virtual public Camera {
 
 	public:
 
