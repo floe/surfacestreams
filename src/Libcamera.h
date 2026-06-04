@@ -34,7 +34,7 @@ class LibCamWrapper {
 		cv::Mat retrieve_frames();
 		void release_frames();
 
-	private:
+	protected:
 
 		int cw,ch;
 
@@ -70,9 +70,10 @@ class Libcamera: virtual public Camera {
 		void retrieve_frames();
 		void release_frames();
 
-	private:
+	protected:
 
 		libcamera::CameraManager* cm;
+		std::vector<std::shared_ptr<libcamera::Camera>> cameras;
 		LibCamWrapper* cam[2];
 
 };

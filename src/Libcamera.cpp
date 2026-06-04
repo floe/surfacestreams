@@ -50,7 +50,7 @@ Libcamera::Libcamera(const char* pipe, const char* dev, int _cw, int _ch):
   if (cm->start() < 0) throw std::runtime_error("Failed to start CameraManager.");
 
   // select camera by name first, try by index if not found
-  auto cameras = cm->cameras();
+  cameras = cm->cameras();
   unsigned int idx = dev[0] - '0';
   auto camera = cm->get(dev);
 
@@ -137,6 +137,7 @@ LibCamWrapper::~LibCamWrapper() {
 
 Libcamera::~Libcamera() {
   delete cam[0];
+  delete cam[1];
   cm->stop();
   delete cm;
 }
