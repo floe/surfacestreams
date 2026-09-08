@@ -1,3 +1,5 @@
+# Note: repository has moved to Codeberg at https://codeberg.org/floe/surfacestreams
+
 # SurfaceStreams
 
 ---
